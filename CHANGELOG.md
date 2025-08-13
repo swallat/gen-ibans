@@ -5,9 +5,11 @@ All notable changes to the German IBAN Generator project will be documented in t
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.1] - 2025-08-13
 
-## [0.1.0] - 2025-08-13
+Rerelease to push to PyPI.
+
+## [1.0.0] - 2025-08-13
 
 ### Added
 - **Core IBAN Generation**: Complete IBAN generator using real Bundesbank data
