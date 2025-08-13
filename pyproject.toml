@@ -52,6 +52,7 @@ gen_ibans = ["*.py"]
 [dependency-groups]
 dev = [
     "pytest>=8.3.5",
+    "ruff>=0.12.8",
 ]
 
 [tool.setuptools_scm]

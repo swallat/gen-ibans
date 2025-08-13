@@ -1,6 +1,49 @@
 # German IBAN Generator
 
+[![CI](https://github.com/swallat/gen-ibans/actions/workflows/ci.yml/badge.svg)](https://github.com/swallat/gen-ibans/actions/workflows/ci.yml)
+[![PyPI version](https://badge.fury.io/py/gen-ibans.svg)](https://badge.fury.io/py/gen-ibans)
+[![Python versions](https://img.shields.io/pypi/pyversions/gen-ibans.svg)](https://pypi.org/project/gen-ibans/)
+
 A powerful tool for generating valid German IBANs using real Bundesbank data with deterministic PRNG and comprehensive format support.
+
+## Inhaltsverzeichnis / Table of Contents
+
+- [Features](#features)
+- [Installation](#installation)
+  - [Using uv (Recommended)](#using-uv-recommended)
+  - [Using pip](#using-pip)
+- [Quick Start](#quick-start)
+- [Usage](#usage)
+  - [Command Line Interface](#command-line-interface)
+  - [Output Formats](#output-formats)
+  - [Output Control Options](#output-control-options)
+  - [Advanced Options](#advanced-options)
+  - [CLI Parameters Reference](#cli-parameters-reference)
+  - [Python Module Usage](#python-module-usage)
+  - [IBAN Validation](#iban-validation)
+- [Data Sources](#data-sources)
+  - [Automatic Download](#automatic-download)
+  - [Supported Input Formats](#supported-input-formats)
+- [Output Examples](#output-examples)
+  - [Plain Text (Default)](#plain-text-default)
+  - [JSON Format](#json-format)
+  - [CSV Format](#csv-format)
+  - [XML Format](#xml-format)
+- [IBAN Format](#iban-format)
+- [License](#license)
+- [Disclaimer](#disclaimer)
+- [Development](#development)
+  - [Prerequisites for Python Beginners](#prerequisites-for-python-beginners)
+  - [Step 1: Install Python](#step-1-install-python)
+  - [Step 2: Install mise (Python Version Manager)](#step-2-install-mise-python-version-manager)
+  - [Step 3: Install uv (Fast Python Package Manager)](#step-3-install-uv-fast-python-package-manager)
+  - [Step 4: Verify Your Setup](#step-4-verify-your-setup)
+  - [Quick Setup with Bootstrap Scripts](#quick-setup-with-bootstrap-scripts)
+  - [Releases](#releases)
+  - [Project Structure](#project-structure)
+  - [Requirements](#requirements)
+  - [Testing](#testing)
+  - [Building and Installation](#building-and-installation)
 
 ## Features
 
@@ -11,184 +54,6 @@ A powerful tool for generating valid German IBANs using real Bundesbank data wit
 - ✅ **Version Checking**: Automatically detects and downloads newer data versions
 - ✅ **Comprehensive CLI**: Full-featured command-line interface with extensive options
 - ✅ **Personal Data**: Includes realistic German names and addresses using Faker
-
-## Prerequisites for Python Beginners
-
-If you're new to Python development, you'll need to install a few tools first. This section provides step-by-step instructions for setting up your development environment.
-
-### Step 1: Install Python
-
-First, you need Python 3.8 or higher installed on your system.
-
-#### On Windows:
-1. Download Python from [python.org](https://www.python.org/downloads/)
-2. Run the installer and **make sure to check "Add Python to PATH"**
-3. Verify installation by opening Command Prompt and running:
-   ```cmd
-   python --version
-   ```
-
-#### On macOS:
-1. Install using Homebrew (recommended):
-   ```bash
-   # Install Homebrew if not already installed
-   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-   
-   # Install Python
-   brew install python
-   ```
-2. Or download from [python.org](https://www.python.org/downloads/)
-3. Verify installation:
-   ```bash
-   python3 --version
-   ```
-
-#### On Linux (Ubuntu/Debian):
-```bash
-# Update package list
-sudo apt update
-
-# Install Python and pip
-sudo apt install python3 python3-pip
-
-# Verify installation
-python3 --version
-```
-
-### Step 2: Install mise (Python Version Manager)
-
-mise is a tool that helps manage different versions of programming languages, including Python.
-
-#### On Windows:
-1. Install using PowerShell:
-   ```powershell
-   # Using winget (Windows Package Manager)
-   winget install jdx.mise
-   
-   # Or using Scoop
-   scoop install mise
-   ```
-2. Restart your terminal and verify:
-   ```cmd
-   mise --version
-   ```
-
-#### On macOS:
-```bash
-# Using Homebrew
-brew install mise
-
-# Or using curl
-curl https://mise.run | sh
-
-# Verify installation
-mise --version
-```
-
-#### On Linux:
-```bash
-# Using curl
-curl https://mise.run | sh
-
-# Add to your shell profile (e.g., ~/.bashrc or ~/.zshrc)
-echo 'eval "$(mise activate bash)"' >> ~/.bashrc
-
-# Reload your shell or run:
-source ~/.bashrc
-
-# Verify installation
-mise --version
-```
-
-### Step 3: Install uv (Fast Python Package Manager)
-
-uv is a modern, fast Python package manager that replaces pip in many workflows.
-
-#### On Windows:
-```powershell
-# Using PowerShell
-powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-
-# Or using winget
-winget install --id=astral-sh.uv -e
-
-# Verify installation
-uv --version
-```
-
-#### On macOS:
-```bash
-# Using Homebrew
-brew install uv
-
-# Or using curl
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Verify installation
-uv --version
-```
-
-#### On Linux:
-```bash
-# Using curl
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Add uv to your PATH (usually done automatically)
-# If needed, add this to your ~/.bashrc or ~/.zshrc:
-export PATH="$HOME/.cargo/bin:$PATH"
-
-# Verify installation
-uv --version
-```
-
-### Step 4: Verify Your Setup
-
-Once you have Python, mise, and uv installed, verify everything works:
-
-```bash
-# Check Python version (should be 3.8 or higher)
-python --version
-
-# Check mise
-mise --version
-
-# Check uv
-uv --version
-```
-
-You're now ready to proceed with the installation instructions below!
-
-### Quick Setup with Bootstrap Scripts
-
-For a fully automated setup, you can use our platform-specific bootstrap scripts that will install all prerequisites and dependencies:
-
-#### Windows (PowerShell)
-```powershell
-# Download and run the Windows bootstrap script
-./bootstrap-windows.ps1
-```
-
-#### Linux (Debian/Ubuntu)
-```bash
-# Make script executable and run
-chmod +x bootstrap-linux.sh
-./bootstrap-linux.sh
-```
-
-#### macOS
-```bash
-# Make script executable and run
-chmod +x bootstrap-macos.sh
-./bootstrap-macos.sh
-```
-
-**What the bootstrap scripts do:**
-- **Windows**: Installs Scoop, Python, mise, and uv automatically
-- **Linux**: Installs Python, mise, and uv via apt and official installers
-- **macOS**: Installs Homebrew, Python, mise, and uv automatically
-- **All platforms**: Sets up shell integration and installs project dependencies
-
-After running the bootstrap script, you can skip directly to the [Quick Start](#quick-start) section!
 
 ## Installation
 
@@ -433,6 +298,203 @@ DE48500700100000000001,Max,Mustermann,Musterstraße 1,Berlin,10115,Deutsche Bank
 ```
 
 ## Development
+
+### Prerequisites for Python Beginners
+
+If you're new to Python development, you'll need to install a few tools first. This section provides step-by-step instructions for setting up your development environment.
+
+#### Step 1: Install Python
+
+First, you need Python 3.8 or higher installed on your system.
+
+##### On Windows:
+1. Download Python from [python.org](https://www.python.org/downloads/)
+2. Run the installer and **make sure to check "Add Python to PATH"**
+3. Verify installation by opening Command Prompt and running:
+   ```cmd
+   python --version
+   ```
+
+##### On macOS:
+1. Install using Homebrew (recommended):
+   ```bash
+   # Install Homebrew if not already installed
+   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+   
+   # Install Python
+   brew install python
+   ```
+2. Or download from [python.org](https://www.python.org/downloads/)
+3. Verify installation:
+   ```bash
+   python3 --version
+   ```
+
+##### On Linux (Ubuntu/Debian):
+```bash
+# Update package list
+sudo apt update
+
+# Install Python and pip
+sudo apt install python3 python3-pip
+
+# Verify installation
+python3 --version
+```
+
+#### Step 2: Install mise (Python Version Manager)
+
+mise is a tool that helps manage different versions of programming languages, including Python.
+
+##### On Windows:
+1. Install using PowerShell:
+   ```powershell
+   # Using winget (Windows Package Manager)
+   winget install jdx.mise
+   
+   # Or using Scoop
+   scoop install mise
+   ```
+2. Restart your terminal and verify:
+   ```cmd
+   mise --version
+   ```
+
+##### On macOS:
+```bash
+# Using Homebrew
+brew install mise
+
+# Or using curl
+curl https://mise.run | sh
+
+# Verify installation
+mise --version
+```
+
+##### On Linux:
+```bash
+# Using curl
+curl https://mise.run | sh
+
+# Add to your shell profile (e.g., ~/.bashrc or ~/.zshrc)
+echo 'eval "$(mise activate bash)"' >> ~/.bashrc
+
+# Reload your shell or run:
+source ~/.bashrc
+
+# Verify installation
+mise --version
+```
+
+#### Step 3: Install uv (Fast Python Package Manager)
+
+uv is a modern, fast Python package manager that replaces pip in many workflows.
+
+##### On Windows:
+```powershell
+# Using PowerShell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+# Or using winget
+winget install --id=astral-sh.uv -e
+
+# Verify installation
+uv --version
+```
+
+##### On macOS:
+```bash
+# Using Homebrew
+brew install uv
+
+# Or using curl
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Verify installation
+uv --version
+```
+
+##### On Linux:
+```bash
+# Using curl
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Add uv to your PATH (usually done automatically)
+# If needed, add this to your ~/.bashrc or ~/.zshrc:
+export PATH="$HOME/.cargo/bin:$PATH"
+
+# Verify installation
+uv --version
+```
+
+#### Step 4: Verify Your Setup
+
+Once you have Python, mise, and uv installed, verify everything works:
+
+```bash
+# Check Python version (should be 3.8 or higher)
+python --version
+
+# Check mise
+mise --version
+
+# Check uv
+uv --version
+```
+
+You're now ready to proceed with the development setup!
+
+#### Quick Setup with Bootstrap Scripts
+
+For a fully automated setup, you can use our platform-specific bootstrap scripts that will install all prerequisites and dependencies:
+
+##### Windows (PowerShell)
+```powershell
+# Download and run the Windows bootstrap script
+./bootstrap-windows.ps1
+```
+
+##### Linux (Debian/Ubuntu)
+```bash
+# Make script executable and run
+chmod +x bootstrap-linux.sh
+./bootstrap-linux.sh
+```
+
+##### macOS
+```bash
+# Make script executable and run
+chmod +x bootstrap-macos.sh
+./bootstrap-macos.sh
+```
+
+**What the bootstrap scripts do:**
+- **Windows**: Installs Scoop, Python, mise, and uv automatically
+- **Linux**: Installs Python, mise, and uv via apt and official installers
+- **macOS**: Installs Homebrew, Python, mise, and uv automatically
+- **All platforms**: Sets up shell integration and installs project dependencies
+
+After running the bootstrap script, you can proceed directly to development!
+
+### Releases
+
+To create a new release of this project:
+
+1. **Create and push a version tag**:
+   ```bash
+   # Create a new tag (replace x.y.z with your version number)
+   git tag v1.0.0
+   git push origin v1.0.0
+   ```
+
+2. **Automatic process**: Once you push a tag starting with `v*`, GitHub Actions will automatically:
+   - Run all tests across multiple Python versions and operating systems
+   - Build the package using `uv build`
+   - Create a GitHub release with release notes
+   - Publish the package to PyPI (if `PYPI_TOKEN` secret is configured)
+
+3. **Monitor the release**: Check the [Actions tab](https://github.com/swallat/gen-ibans/actions) to see the release progress.
 
 ### Project Structure
 ```
