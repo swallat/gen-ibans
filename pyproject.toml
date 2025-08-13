@@ -39,9 +39,9 @@ classifiers = [
 gen-ibans = "gen_ibans.cli:main"
 
 [project.urls]
-"Homepage" = "https://github.com/example/gen-ibans"
-"Bug Reports" = "https://github.com/example/gen-ibans/issues"
-"Source" = "https://github.com/example/gen-ibans"
+"Homepage" = "https://github.com/swallat/gen-ibans"
+"Bug Reports" = "https://github.com/swallat/gen-ibans/issues"
+"Source" = "https://github.com/swallat/gen-ibans"
 
 [tool.setuptools]
 packages = ["gen_ibans"]
