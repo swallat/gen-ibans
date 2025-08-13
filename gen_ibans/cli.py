@@ -35,6 +35,14 @@ from typing import List, Optional
 from .iban_generator import IBANGenerator, BankInfo, IBANRecord
 from .downloader import BundesbankDownloader
 
+try:
+    from importlib.metadata import version
+    __version__ = version("gen-ibans")
+except ImportError:
+    # Fallback for older Python versions
+    import pkg_resources
+    __version__ = pkg_resources.get_distribution("gen-ibans").version
+
 
 class OutputFormatter:
     """Handles different output formats for generated IBANs."""
@@ -213,9 +221,12 @@ class OutputFormatter:
 @click.option('--no-version-check',
               is_flag=True,
               help='Disable checking for newer versions online (rely only on cache age)')
+@click.option('-v', '--version',
+              is_flag=True,
+              help='Show version and exit')
 def main(data_file: Optional[Path], seed: int, count: int, output_format: str, output: Path, no_echo: bool,
          iban_only: bool, no_personal_info: bool, no_bank_info: bool, clean: bool,
-         download_format: str, force_download: bool, cache_dir: Optional[Path], no_version_check: bool) -> None:
+         download_format: str, force_download: bool, cache_dir: Optional[Path], no_version_check: bool, version: bool) -> None:
     """Generate valid German IBANs using Bundesbank data.
     
     Data is always displayed on the command line by default in plain format.
@@ -244,6 +255,11 @@ def main(data_file: Optional[Path], seed: int, count: int, output_format: str, o
       # Force re-download of data
       gen-ibans --count 5 --force-download
     """
+    # Handle version flag
+    if version:
+        click.echo(__version__)
+        return
+    
     # Validate arguments
     if count <= 0:
         raise click.BadParameter("Count must be a positive integer")

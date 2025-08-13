@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=61.0", "setuptools-scm>=8.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "gen-ibans"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Generate valid German IBANs using Bundesbank data and PRNG"
 authors = [
     {name = "Sebastian Wallat"}
@@ -53,3 +53,6 @@ gen_ibans = ["*.py"]
 dev = [
     "pytest>=8.3.5",
 ]
+
+[tool.setuptools_scm]
+# Enable setuptools-scm for dynamic versioning from git tags

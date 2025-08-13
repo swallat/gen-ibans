@@ -27,5 +27,7 @@ SOFTWARE.
 from .iban_generator import IBANGenerator, BankInfo, validate_iban
 from .cli import main
 
-__version__ = "0.1.0"
+from importlib.metadata import version
+
+__version__ = version("gen-ibans")
 __all__ = ["IBANGenerator", "BankInfo", "validate_iban", "main"]
