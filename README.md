@@ -40,6 +40,7 @@ A powerful tool for generating valid German IBANs using real Bundesbank data wit
   - [Step 4: Verify Your Setup](#step-4-verify-your-setup)
   - [Quick Setup with Bootstrap Scripts](#quick-setup-with-bootstrap-scripts)
   - [Releases](#releases)
+  - [Local PyPI Publishing](#local-pypi-publishing)
   - [Project Structure](#project-structure)
   - [Requirements](#requirements)
   - [Testing](#testing)
@@ -495,6 +496,95 @@ To create a new release of this project:
    - Publish the package to PyPI (if `PYPI_TOKEN` secret is configured)
 
 3. **Monitor the release**: Check the [Actions tab](https://github.com/swallat/gen-ibans/actions) to see the release progress.
+
+### Local PyPI Publishing
+
+If you want to publish to PyPI locally instead of using the automated GitHub Actions workflow, follow these steps:
+
+#### Prerequisites
+
+1. **PyPI Account**: You need a PyPI account and API token
+2. **API Token**: Generate an API token from [PyPI Account Settings](https://pypi.org/manage/account/token/)
+
+#### Step-by-Step Local Publishing
+
+1. **Set up your PyPI API token**:
+   ```bash
+   # Option 1: Set as environment variable (recommended)
+   $env:UV_PUBLISH_TOKEN="pypi-your-api-token-here"
+   
+   # Option 2: Or use uv's built-in credential storage
+   uv publish --token "pypi-your-api-token-here" --dry-run
+   ```
+
+2. **Clean previous builds** (optional but recommended):
+   ```bash
+   Remove-Item -Recurse -Force dist\*
+   ```
+
+3. **Run tests** to ensure everything works:
+   ```bash
+   uv run pytest tests/ -v
+   ```
+
+4. **Build the package**:
+   ```bash
+   uv build
+   ```
+   This creates both wheel (`.whl`) and source distribution (`.tar.gz`) files in the `dist/` directory.
+
+5. **Verify the build**:
+   ```bash
+   # Check what was built
+   Get-ChildItem dist\
+   
+   # Optional: Install locally to test
+   uv pip install dist\*.whl --force-reinstall
+   ```
+
+6. **Test publish** (dry run - highly recommended):
+   ```bash
+   uv publish --dry-run
+   ```
+   This simulates the upload without actually publishing.
+
+7. **Publish to PyPI**:
+   ```bash
+   # Using environment variable
+   uv publish
+   
+   # Or specify token directly
+   uv publish --token "pypi-your-api-token-here"
+   ```
+
+#### Publishing to Test PyPI (Recommended for Testing)
+
+Before publishing to the main PyPI, test with TestPyPI:
+
+```bash
+# Build the package
+uv build
+
+# Publish to Test PyPI
+uv publish --publish-url https://test.pypi.org/legacy/ --token "testpypi-your-api-token-here"
+
+# Test installation from Test PyPI
+pip install --index-url https://test.pypi.org/simple/ gen-ibans
+```
+
+#### Troubleshooting
+
+- **Authentication errors**: Ensure your API token is correct and has upload permissions
+- **Version conflicts**: PyPI doesn't allow re-uploading the same version. Increment your version tag
+- **Build errors**: Check that all files are committed and your working directory is clean
+- **Missing dependencies**: Run `uv sync --dev` to ensure all build dependencies are installed
+
+#### Security Notes
+
+- **Never commit API tokens** to version control
+- **Use environment variables** or uv's credential storage for tokens
+- **Limit token scope** to only the packages you need to upload
+- **Revoke tokens** when no longer needed
 
 ### Project Structure
 ```
