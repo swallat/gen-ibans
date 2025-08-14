@@ -119,7 +119,7 @@ def _default_config_content() -> dict:
                 [2, 0.15],
                 [10, 0.14],
                 [100, 0.009],
-                [1000, 0.001]
+                [1000, 0.001],
             ],
             "beneficial_owner_distribution": [
                 [0, 0.70],
@@ -127,7 +127,7 @@ def _default_config_content() -> dict:
                 [2, 0.05],
                 [10, 0.04],
                 [50, 0.009],
-                [1000, 0.001]
+                [1000, 0.001],
             ],
             "legal_entity_probability": 0.05,
             "beneficiary_legal_entity_probability": 0.0,
@@ -136,7 +136,7 @@ def _default_config_content() -> dict:
                 [1, 0.80],
                 [10, 0.15],
                 [100, 0.04],
-                [99999, 0.01]
+                [99999, 0.01],
             ],
             "person_reuse_distribution": [
                 [1, 0.8],
@@ -144,9 +144,9 @@ def _default_config_content() -> dict:
                 [5, 0.05],
                 [15, 0.03],
                 [50, 0.019],
-                [200, 0.001]
-            ]
-        }
+                [200, 0.001],
+            ],
+        },
     }
 
 
@@ -175,26 +175,32 @@ class OutputFormatter:
             holders_str = []
             for holder in record.account_holders:
                 if isinstance(holder, LegalEntity):
-                    holders_str.append(f"{holder.name} (Legal Entity, WID: {holder.wid})")
+                    holders_str.append(
+                        f"{holder.name} (Legal Entity, WID: {holder.wid})"
+                    )
                 else:
                     ids_str = f"Tax-ID: {holder.tax_id}"
                     if holder.wid:
                         ids_str += f", WID: {holder.wid}"
                     holders_str.append(f"{holder.full_name} ({ids_str})")
             holders_display = "; ".join(holders_str)
-            
+
             # Format beneficiaries
             beneficiaries_str = []
             for beneficiary in record.beneficiaries:
                 if isinstance(beneficiary, LegalEntity):
-                    beneficiaries_str.append(f"{beneficiary.name} (Legal Entity, WID: {beneficiary.wid})")
+                    beneficiaries_str.append(
+                        f"{beneficiary.name} (Legal Entity, WID: {beneficiary.wid})"
+                    )
                 else:
                     ids_str = f"Tax-ID: {beneficiary.tax_id}"
                     if beneficiary.wid:
                         ids_str += f", WID: {beneficiary.wid}"
                     beneficiaries_str.append(f"{beneficiary.full_name} ({ids_str})")
-            beneficiaries_display = "; ".join(beneficiaries_str) if beneficiaries_str else "None"
-            
+            beneficiaries_display = (
+                "; ".join(beneficiaries_str) if beneficiaries_str else "None"
+            )
+
             if include_personal_info and include_bank_info:
                 print(
                     f"{record.iban} | Holders: {holders_display} | Beneficiaries: {beneficiaries_display} | {record.bank.name} | {record.bank.bic} | {record.bank.bankleitzahl}"
@@ -226,26 +232,34 @@ class OutputFormatter:
                     holders_str = []
                     for holder in record.account_holders:
                         if isinstance(holder, LegalEntity):
-                            holders_str.append(f"{holder.name} (Legal Entity, WID: {holder.wid})")
+                            holders_str.append(
+                                f"{holder.name} (Legal Entity, WID: {holder.wid})"
+                            )
                         else:
                             ids_str = f"Tax-ID: {holder.tax_id}"
                             if holder.wid:
                                 ids_str += f", WID: {holder.wid}"
                             holders_str.append(f"{holder.full_name} ({ids_str})")
                     holders_display = "; ".join(holders_str)
-                    
+
                     # Format beneficiaries
                     beneficiaries_str = []
                     for beneficiary in record.beneficiaries:
                         if isinstance(beneficiary, LegalEntity):
-                            beneficiaries_str.append(f"{beneficiary.name} (Legal Entity, WID: {beneficiary.wid})")
+                            beneficiaries_str.append(
+                                f"{beneficiary.name} (Legal Entity, WID: {beneficiary.wid})"
+                            )
                         else:
                             ids_str = f"Tax-ID: {beneficiary.tax_id}"
                             if beneficiary.wid:
                                 ids_str += f", WID: {beneficiary.wid}"
-                            beneficiaries_str.append(f"{beneficiary.full_name} ({ids_str})")
-                    beneficiaries_display = "; ".join(beneficiaries_str) if beneficiaries_str else "None"
-                    
+                            beneficiaries_str.append(
+                                f"{beneficiary.full_name} ({ids_str})"
+                            )
+                    beneficiaries_display = (
+                        "; ".join(beneficiaries_str) if beneficiaries_str else "None"
+                    )
+
                     if include_personal_info and include_bank_info:
                         f.write(
                             f"{record.iban} | Holders: {holders_display} | Beneficiaries: {beneficiaries_display} | {record.bank.name} | {record.bank.bic} | {record.bank.bankleitzahl}\n"
@@ -279,7 +293,7 @@ class OutputFormatter:
                     [
                         "IBAN",
                         "Account Holders",
-                        "Beneficial Owners", 
+                        "Beneficial Owners",
                         "Bank Name",
                         "BIC",
                         "Bank Code",
@@ -292,26 +306,34 @@ class OutputFormatter:
                     holders_str = []
                     for holder in record.account_holders:
                         if isinstance(holder, LegalEntity):
-                            holders_str.append(f"{holder.name} (Legal Entity, WID: {holder.wid})")
+                            holders_str.append(
+                                f"{holder.name} (Legal Entity, WID: {holder.wid})"
+                            )
                         else:
                             ids_str = f"Tax-ID: {holder.tax_id}"
                             if holder.wid:
                                 ids_str += f", WID: {holder.wid}"
                             holders_str.append(f"{holder.full_name} ({ids_str})")
                     holders_csv = "; ".join(holders_str)
-                    
+
                     # Format beneficiaries
                     beneficiaries_str = []
                     for beneficiary in record.beneficiaries:
                         if isinstance(beneficiary, LegalEntity):
-                            beneficiaries_str.append(f"{beneficiary.name} (Legal Entity, WID: {beneficiary.wid})")
+                            beneficiaries_str.append(
+                                f"{beneficiary.name} (Legal Entity, WID: {beneficiary.wid})"
+                            )
                         else:
                             ids_str = f"Tax-ID: {beneficiary.tax_id}"
                             if beneficiary.wid:
                                 ids_str += f", WID: {beneficiary.wid}"
-                            beneficiaries_str.append(f"{beneficiary.full_name} ({ids_str})")
-                    beneficiaries_csv = "; ".join(beneficiaries_str) if beneficiaries_str else "None"
-                    
+                            beneficiaries_str.append(
+                                f"{beneficiary.full_name} ({ids_str})"
+                            )
+                    beneficiaries_csv = (
+                        "; ".join(beneficiaries_str) if beneficiaries_str else "None"
+                    )
+
                     writer.writerow(
                         [
                             record.iban,
@@ -349,20 +371,32 @@ class OutputFormatter:
                         ET.SubElement(holder_elem, "type").text = "legal_entity"
                         ET.SubElement(holder_elem, "name").text = holder.name
                         ET.SubElement(holder_elem, "wid").text = holder.wid
-                        ET.SubElement(holder_elem, "street_address").text = holder.street_address
+                        ET.SubElement(
+                            holder_elem, "street_address"
+                        ).text = holder.street_address
                         ET.SubElement(holder_elem, "city").text = holder.city
-                        ET.SubElement(holder_elem, "postal_code").text = holder.postal_code
+                        ET.SubElement(
+                            holder_elem, "postal_code"
+                        ).text = holder.postal_code
                     else:
                         ET.SubElement(holder_elem, "type").text = "natural_person"
-                        ET.SubElement(holder_elem, "first_name").text = holder.first_name
+                        ET.SubElement(
+                            holder_elem, "first_name"
+                        ).text = holder.first_name
                         ET.SubElement(holder_elem, "last_name").text = holder.last_name
-                        ET.SubElement(holder_elem, "birth_date").text = str(holder.birth_date)
+                        ET.SubElement(holder_elem, "birth_date").text = str(
+                            holder.birth_date
+                        )
                         ET.SubElement(holder_elem, "tax_id").text = holder.tax_id
                         if holder.wid:
                             ET.SubElement(holder_elem, "wid").text = holder.wid
-                        ET.SubElement(holder_elem, "street_address").text = holder.street_address
+                        ET.SubElement(
+                            holder_elem, "street_address"
+                        ).text = holder.street_address
                         ET.SubElement(holder_elem, "city").text = holder.city
-                        ET.SubElement(holder_elem, "postal_code").text = holder.postal_code
+                        ET.SubElement(
+                            holder_elem, "postal_code"
+                        ).text = holder.postal_code
 
                 # Beneficiaries
                 beneficiaries_elem = ET.SubElement(iban_elem, "beneficiaries")
@@ -372,20 +406,38 @@ class OutputFormatter:
                         ET.SubElement(beneficiary_elem, "type").text = "legal_entity"
                         ET.SubElement(beneficiary_elem, "name").text = beneficiary.name
                         ET.SubElement(beneficiary_elem, "wid").text = beneficiary.wid
-                        ET.SubElement(beneficiary_elem, "street_address").text = beneficiary.street_address
+                        ET.SubElement(
+                            beneficiary_elem, "street_address"
+                        ).text = beneficiary.street_address
                         ET.SubElement(beneficiary_elem, "city").text = beneficiary.city
-                        ET.SubElement(beneficiary_elem, "postal_code").text = beneficiary.postal_code
+                        ET.SubElement(
+                            beneficiary_elem, "postal_code"
+                        ).text = beneficiary.postal_code
                     else:
                         ET.SubElement(beneficiary_elem, "type").text = "natural_person"
-                        ET.SubElement(beneficiary_elem, "first_name").text = beneficiary.first_name
-                        ET.SubElement(beneficiary_elem, "last_name").text = beneficiary.last_name
-                        ET.SubElement(beneficiary_elem, "birth_date").text = str(beneficiary.birth_date)
-                        ET.SubElement(beneficiary_elem, "tax_id").text = beneficiary.tax_id
+                        ET.SubElement(
+                            beneficiary_elem, "first_name"
+                        ).text = beneficiary.first_name
+                        ET.SubElement(
+                            beneficiary_elem, "last_name"
+                        ).text = beneficiary.last_name
+                        ET.SubElement(beneficiary_elem, "birth_date").text = str(
+                            beneficiary.birth_date
+                        )
+                        ET.SubElement(
+                            beneficiary_elem, "tax_id"
+                        ).text = beneficiary.tax_id
                         if beneficiary.wid:
-                            ET.SubElement(beneficiary_elem, "wid").text = beneficiary.wid
-                        ET.SubElement(beneficiary_elem, "street_address").text = beneficiary.street_address
+                            ET.SubElement(
+                                beneficiary_elem, "wid"
+                            ).text = beneficiary.wid
+                        ET.SubElement(
+                            beneficiary_elem, "street_address"
+                        ).text = beneficiary.street_address
                         ET.SubElement(beneficiary_elem, "city").text = beneficiary.city
-                        ET.SubElement(beneficiary_elem, "postal_code").text = beneficiary.postal_code
+                        ET.SubElement(
+                            beneficiary_elem, "postal_code"
+                        ).text = beneficiary.postal_code
 
                 # Bank info
                 bank_elem = ET.SubElement(iban_elem, "bank")
@@ -416,14 +468,16 @@ class OutputFormatter:
                 holders_data = []
                 for holder in record.account_holders:
                     if isinstance(holder, LegalEntity):
-                        holders_data.append({
-                            "type": "legal_entity",
-                            "name": holder.name,
-                            "wid": holder.wid,
-                            "street_address": holder.street_address,
-                            "city": holder.city,
-                            "postal_code": holder.postal_code
-                        })
+                        holders_data.append(
+                            {
+                                "type": "legal_entity",
+                                "name": holder.name,
+                                "wid": holder.wid,
+                                "street_address": holder.street_address,
+                                "city": holder.city,
+                                "postal_code": holder.postal_code,
+                            }
+                        )
                     else:
                         holder_data = {
                             "type": "natural_person",
@@ -433,24 +487,26 @@ class OutputFormatter:
                             "tax_id": holder.tax_id,
                             "street_address": holder.street_address,
                             "city": holder.city,
-                            "postal_code": holder.postal_code
+                            "postal_code": holder.postal_code,
                         }
                         if holder.wid:
                             holder_data["wid"] = holder.wid
                         holders_data.append(holder_data)
-                
+
                 # Beneficiaries
                 beneficiaries_data = []
                 for beneficiary in record.beneficiaries:
                     if isinstance(beneficiary, LegalEntity):
-                        beneficiaries_data.append({
-                            "type": "legal_entity",
-                            "name": beneficiary.name,
-                            "wid": beneficiary.wid,
-                            "street_address": beneficiary.street_address,
-                            "city": beneficiary.city,
-                            "postal_code": beneficiary.postal_code
-                        })
+                        beneficiaries_data.append(
+                            {
+                                "type": "legal_entity",
+                                "name": beneficiary.name,
+                                "wid": beneficiary.wid,
+                                "street_address": beneficiary.street_address,
+                                "city": beneficiary.city,
+                                "postal_code": beneficiary.postal_code,
+                            }
+                        )
                     else:
                         beneficiary_data = {
                             "type": "natural_person",
@@ -460,22 +516,24 @@ class OutputFormatter:
                             "tax_id": beneficiary.tax_id,
                             "street_address": beneficiary.street_address,
                             "city": beneficiary.city,
-                            "postal_code": beneficiary.postal_code
+                            "postal_code": beneficiary.postal_code,
                         }
                         if beneficiary.wid:
                             beneficiary_data["wid"] = beneficiary.wid
                         beneficiaries_data.append(beneficiary_data)
-                
-                data.append({
-                    "iban": record.iban,
-                    "account_holders": holders_data,
-                    "beneficiaries": beneficiaries_data,
-                    "bank": {
-                        "name": record.bank.name,
-                        "bic": record.bank.bic,
-                        "code": record.bank.bankleitzahl,
-                    },
-                })
+
+                data.append(
+                    {
+                        "iban": record.iban,
+                        "account_holders": holders_data,
+                        "beneficiaries": beneficiaries_data,
+                        "bank": {
+                            "name": record.bank.name,
+                            "bic": record.bank.bic,
+                            "code": record.bank.bankleitzahl,
+                        },
+                    }
+                )
 
             with open(output_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
@@ -489,10 +547,11 @@ class OutputFormatter:
 
 class ColoredHelpCommand(click.Command):
     """Custom Click Command that adds colors to the help output.
-    
+
     In addition to standard headers, this also highlights option group headers
     (from click-option-group) to make the help more scannable.
     """
+
     def get_help(self, ctx: click.Context) -> str:
         text = super().get_help(ctx)
         # Determine if we should colorize help (stdout context)
@@ -515,6 +574,7 @@ class ColoredHelpCommand(click.Command):
 
         # Color option flags and option group headers
         import re
+
         colored_lines = []
         group_header_pattern = re.compile(r"^(\s*)([^:\n][^:\n]*:)\s*$")
         for line in text.splitlines():
@@ -530,7 +590,9 @@ class ColoredHelpCommand(click.Command):
                 m = re.match(r"(\s*)(-[^\s,][^\s]*?(?:,\s*--[^\s]+)?)(.*)", line)
                 if m:
                     indent, flags, rest = m.groups()
-                    line = f"{indent}{s(flags, fg='yellow', bold=True)}{s(rest, fg=None)}"
+                    line = (
+                        f"{indent}{s(flags, fg='yellow', bold=True)}{s(rest, fg=None)}"
+                    )
             colored_lines.append(line)
         return "\n".join(colored_lines)
 
@@ -729,21 +791,33 @@ def main(
 
     # Merge additional defaults from config file (CLI and downloader) if not provided on CLI
     try:
-        provided_params = {param for param in ctx.params.keys() if ctx.get_parameter_source(param) != click.core.ParameterSource.DEFAULT}
+        provided_params = {
+            param
+            for param in ctx.params.keys()
+            if ctx.get_parameter_source(param) != click.core.ParameterSource.DEFAULT
+        }
         full_cfg = load_full_config()
         cli_cfg = full_cfg.get("cli", {}) or {}
         dl_cfg = full_cfg.get("downloader", {}) or {}
         # Downloader-related defaults
-        if "download_format" not in provided_params and isinstance(dl_cfg.get("download_format"), str):
+        if "download_format" not in provided_params and isinstance(
+            dl_cfg.get("download_format"), str
+        ):
             download_format = dl_cfg["download_format"]
-        if "force_download" not in provided_params and isinstance(dl_cfg.get("force_download"), bool):
+        if "force_download" not in provided_params and isinstance(
+            dl_cfg.get("force_download"), bool
+        ):
             force_download = dl_cfg["force_download"]
         if "cache_dir" not in provided_params and dl_cfg.get("cache_dir"):
             try:
-                cache_dir = Path(dl_cfg["cache_dir"]) if dl_cfg.get("cache_dir") else cache_dir
+                cache_dir = (
+                    Path(dl_cfg["cache_dir"]) if dl_cfg.get("cache_dir") else cache_dir
+                )
             except Exception:
                 pass
-        if "no_version_check" not in provided_params and isinstance(dl_cfg.get("no_version_check"), bool):
+        if "no_version_check" not in provided_params and isinstance(
+            dl_cfg.get("no_version_check"), bool
+        ):
             no_version_check = dl_cfg["no_version_check"]
         # CLI-related defaults
         if "seed" not in provided_params and cli_cfg.get("seed") is not None:
@@ -760,17 +834,27 @@ def main(
                 output = Path(cli_cfg["output"])  # type: ignore
             except Exception:
                 pass
-        if "no_echo" not in provided_params and isinstance(cli_cfg.get("no_echo"), bool):
+        if "no_echo" not in provided_params and isinstance(
+            cli_cfg.get("no_echo"), bool
+        ):
             no_echo = cli_cfg["no_echo"]
-        if "iban_only" not in provided_params and isinstance(cli_cfg.get("iban_only"), bool):
+        if "iban_only" not in provided_params and isinstance(
+            cli_cfg.get("iban_only"), bool
+        ):
             iban_only = cli_cfg["iban_only"]
-        if "no_personal_info" not in provided_params and isinstance(cli_cfg.get("no_personal_info"), bool):
+        if "no_personal_info" not in provided_params and isinstance(
+            cli_cfg.get("no_personal_info"), bool
+        ):
             no_personal_info = cli_cfg["no_personal_info"]
-        if "no_bank_info" not in provided_params and isinstance(cli_cfg.get("no_bank_info"), bool):
+        if "no_bank_info" not in provided_params and isinstance(
+            cli_cfg.get("no_bank_info"), bool
+        ):
             no_bank_info = cli_cfg["no_bank_info"]
         if "clean" not in provided_params and isinstance(cli_cfg.get("clean"), bool):
             clean = cli_cfg["clean"]
-        if "no_color" not in provided_params and isinstance(cli_cfg.get("no_color"), bool):
+        if "no_color" not in provided_params and isinstance(
+            cli_cfg.get("no_color"), bool
+        ):
             no_color = cli_cfg["no_color"]
     except Exception:
         # Ignore config merge failures for non-generator settings
@@ -792,7 +876,10 @@ def main(
             # Download data from Bundesbank
             if not clean:
                 click.echo(
-                    style(f"No data file provided, downloading from Bundesbank ({download_format} format)...", fg="yellow"),
+                    style(
+                        f"No data file provided, downloading from Bundesbank ({download_format} format)...",
+                        fg="yellow",
+                    ),
                     err=True,
                 )
 
@@ -806,7 +893,12 @@ def main(
                     check_version=not no_version_check,
                 )
                 if not clean:
-                    click.echo(style(f"Downloaded data cached at: {data_file_path}", fg="cyan"), err=True)
+                    click.echo(
+                        style(
+                            f"Downloaded data cached at: {data_file_path}", fg="cyan"
+                        ),
+                        err=True,
+                    )
             except Exception as e:
                 raise click.ClickException(f"Failed to download Bundesbank data: {e}")
         else:
@@ -824,11 +916,20 @@ def main(
         # Apply config file values (lists may be lists of lists; convert to tuples)
         def _convert_pairs(value):
             if isinstance(value, list):
-                return [(int(p[0]), float(p[1])) for p in value if isinstance(p, (list, tuple)) and len(p) == 2]
+                return [
+                    (int(p[0]), float(p[1]))
+                    for p in value
+                    if isinstance(p, (list, tuple)) and len(p) == 2
+                ]
             return value
 
         for key, val in config_file_values.items():
-            if key in {"account_holder_distribution", "beneficial_owner_distribution", "wid_feature_distribution", "person_reuse_distribution"}:
+            if key in {
+                "account_holder_distribution",
+                "beneficial_owner_distribution",
+                "wid_feature_distribution",
+                "person_reuse_distribution",
+            }:
                 val = _convert_pairs(val)
             try:
                 setattr(config, key, val)
@@ -837,14 +938,21 @@ def main(
 
         # Now apply explicit CLI overrides
         config_kwargs = {}
-        provided_params = {param for param in ctx.params.keys() if ctx.get_parameter_source(param) != click.core.ParameterSource.DEFAULT}
+        provided_params = {
+            param
+            for param in ctx.params.keys()
+            if ctx.get_parameter_source(param) != click.core.ParameterSource.DEFAULT
+        }
 
         if "legal_entity_probability" in provided_params:
             config_kwargs["legal_entity_probability"] = legal_entity_probability
         if "economically_active_prob" in provided_params:
             config_kwargs["economically_active_probability"] = economically_active_prob
 
-        if any(param in provided_params for param in ["account_holder_single_prob", "account_holder_two_prob"]):
+        if any(
+            param in provided_params
+            for param in ["account_holder_single_prob", "account_holder_two_prob"]
+        ):
             ah_remaining = 1.0 - account_holder_single_prob - account_holder_two_prob
             ah_ten_prob = ah_remaining * 0.933
             ah_hundred_prob = ah_remaining * 0.06
@@ -857,7 +965,10 @@ def main(
                 (1000, ah_thousand_prob),
             ]
 
-        if any(param in provided_params for param in ["beneficial_owner_zero_prob", "beneficial_owner_one_prob"]):
+        if any(
+            param in provided_params
+            for param in ["beneficial_owner_zero_prob", "beneficial_owner_one_prob"]
+        ):
             bo_remaining = 1.0 - beneficial_owner_zero_prob - beneficial_owner_one_prob
             bo_two_prob = bo_remaining * 0.5
             bo_ten_prob = bo_remaining * 0.4
@@ -872,7 +983,10 @@ def main(
                 (1000, bo_thousand_prob),
             ]
 
-        if any(param in provided_params for param in ["wid_feature_00001_prob", "wid_feature_00002_00010_prob"]):
+        if any(
+            param in provided_params
+            for param in ["wid_feature_00001_prob", "wid_feature_00002_00010_prob"]
+        ):
             wf_remaining = 1.0 - wid_feature_00001_prob - wid_feature_00002_00010_prob
             wf_00011_00100_prob = wf_remaining * 0.8
             wf_00101_99999_prob = wf_remaining * 0.2
@@ -883,7 +997,10 @@ def main(
                 (99999, wf_00101_99999_prob),
             ]
 
-        if any(param in provided_params for param in ["person_reuse_single_prob", "person_reuse_two_prob"]):
+        if any(
+            param in provided_params
+            for param in ["person_reuse_single_prob", "person_reuse_two_prob"]
+        ):
             pr_remaining = 1.0 - person_reuse_single_prob - person_reuse_two_prob
             pr_ten_prob = pr_remaining * 0.933
             pr_hundred_prob = pr_remaining * 0.06
@@ -902,10 +1019,15 @@ def main(
 
         # Initialize IBAN generator
         if not clean:
-            click.echo(style(f"Loading bank data from: {data_file_path}", fg="cyan"), err=True)
+            click.echo(
+                style(f"Loading bank data from: {data_file_path}", fg="cyan"), err=True
+            )
         generator = IBANGenerator(data_file_path, seed, config)
         if not clean:
-            click.echo(style(f"Loaded {generator.get_bank_count()} banks", fg="green"), err=True)
+            click.echo(
+                style(f"Loaded {generator.get_bank_count()} banks", fg="green"),
+                err=True,
+            )
             click.echo(style(f"Using seed: {generator.seed}", fg="magenta"), err=True)
 
         # Generate IBANs
@@ -933,26 +1055,36 @@ def main(
                         holders_str = []
                         for holder in record.account_holders:
                             if isinstance(holder, LegalEntity):
-                                holders_str.append(f"{holder.name} (Legal Entity, WID: {holder.wid}), Address: {holder.full_address}")
+                                holders_str.append(
+                                    f"{holder.name} (Legal Entity, WID: {holder.wid}), Address: {holder.full_address}"
+                                )
                             else:
                                 ids_str = f"Tax-ID: {holder.tax_id}"
                                 if holder.wid:
                                     ids_str += f", WID: {holder.wid}"
                                 holders_str.append(f"{holder.full_name} ({ids_str})")
                         holders_display = "; ".join(holders_str)
-                        
+
                         # Format beneficiaries
                         beneficiaries_str = []
                         for beneficiary in record.beneficiaries:
                             if isinstance(beneficiary, LegalEntity):
-                                beneficiaries_str.append(f"{beneficiary.name} (Legal Entity, WID: {beneficiary.wid}), Address: {beneficiary.full_address}")
+                                beneficiaries_str.append(
+                                    f"{beneficiary.name} (Legal Entity, WID: {beneficiary.wid}), Address: {beneficiary.full_address}"
+                                )
                             else:
                                 ids_str = f"Tax-ID: {beneficiary.tax_id}"
                                 if beneficiary.wid:
                                     ids_str += f", WID: {beneficiary.wid}"
-                                beneficiaries_str.append(f"{beneficiary.full_name} ({ids_str})")
-                        beneficiaries_display = "; ".join(beneficiaries_str) if beneficiaries_str else "None"
-                        
+                                beneficiaries_str.append(
+                                    f"{beneficiary.full_name} ({ids_str})"
+                                )
+                        beneficiaries_display = (
+                            "; ".join(beneficiaries_str)
+                            if beneficiaries_str
+                            else "None"
+                        )
+
                         if include_personal_info and include_bank_info:
                             print(
                                 f"{record.iban} | Holders: {holders_display} | Beneficiaries: {beneficiaries_display} | {record.bank.name} | {record.bank.bic} | {record.bank.bankleitzahl}"
@@ -977,26 +1109,36 @@ def main(
                         holders_str = []
                         for holder in record.account_holders:
                             if isinstance(holder, LegalEntity):
-                                holders_str.append(f"{holder.name} (Legal Entity, WID: {holder.wid}), Address: {holder.full_address}")
+                                holders_str.append(
+                                    f"{holder.name} (Legal Entity, WID: {holder.wid}), Address: {holder.full_address}"
+                                )
                             else:
                                 ids_str = f"Tax-ID: {holder.tax_id}"
                                 if holder.wid:
                                     ids_str += f", WID: {holder.wid}"
                                 holders_str.append(f"{holder.full_name} ({ids_str})")
                         holders_csv = "; ".join(holders_str)
-                        
+
                         # Format beneficiaries
                         beneficiaries_str = []
                         for beneficiary in record.beneficiaries:
                             if isinstance(beneficiary, LegalEntity):
-                                beneficiaries_str.append(f"{beneficiary.name} (Legal Entity, WID: {beneficiary.wid}), Address: {beneficiary.full_address}")
+                                beneficiaries_str.append(
+                                    f"{beneficiary.name} (Legal Entity, WID: {beneficiary.wid}), Address: {beneficiary.full_address}"
+                                )
                             else:
                                 ids_str = f"Tax-ID: {beneficiary.tax_id}"
                                 if beneficiary.wid:
                                     ids_str += f", WID: {beneficiary.wid}"
-                                beneficiaries_str.append(f"{beneficiary.full_name} ({ids_str})")
-                        beneficiaries_csv = "; ".join(beneficiaries_str) if beneficiaries_str else "None"
-                        
+                                beneficiaries_str.append(
+                                    f"{beneficiary.full_name} ({ids_str})"
+                                )
+                        beneficiaries_csv = (
+                            "; ".join(beneficiaries_str)
+                            if beneficiaries_str
+                            else "None"
+                        )
+
                         print(
                             f'"{record.iban}","{holders_csv}","{beneficiaries_csv}","{record.bank.name}","{record.bank.bic}","{record.bank.bankleitzahl}"'
                         )
@@ -1008,7 +1150,7 @@ def main(
                     for record in ibans:
                         iban_elem = ET.SubElement(root, "account")
                         ET.SubElement(iban_elem, "iban").text = record.iban
-                        
+
                         # Account holders
                         holders_elem = ET.SubElement(iban_elem, "account_holders")
                         for holder in record.account_holders:
@@ -1017,44 +1159,94 @@ def main(
                                 ET.SubElement(holder_elem, "type").text = "legal_entity"
                                 ET.SubElement(holder_elem, "name").text = holder.name
                                 ET.SubElement(holder_elem, "wid").text = holder.wid
-                                ET.SubElement(holder_elem, "street_address").text = holder.street_address
+                                ET.SubElement(
+                                    holder_elem, "street_address"
+                                ).text = holder.street_address
                                 ET.SubElement(holder_elem, "city").text = holder.city
-                                ET.SubElement(holder_elem, "postal_code").text = holder.postal_code
+                                ET.SubElement(
+                                    holder_elem, "postal_code"
+                                ).text = holder.postal_code
                             else:
-                                ET.SubElement(holder_elem, "type").text = "natural_person"
-                                ET.SubElement(holder_elem, "first_name").text = holder.first_name
-                                ET.SubElement(holder_elem, "last_name").text = holder.last_name
-                                ET.SubElement(holder_elem, "birth_date").text = str(holder.birth_date)
-                                ET.SubElement(holder_elem, "tax_id").text = holder.tax_id
+                                ET.SubElement(
+                                    holder_elem, "type"
+                                ).text = "natural_person"
+                                ET.SubElement(
+                                    holder_elem, "first_name"
+                                ).text = holder.first_name
+                                ET.SubElement(
+                                    holder_elem, "last_name"
+                                ).text = holder.last_name
+                                ET.SubElement(holder_elem, "birth_date").text = str(
+                                    holder.birth_date
+                                )
+                                ET.SubElement(
+                                    holder_elem, "tax_id"
+                                ).text = holder.tax_id
                                 if holder.wid:
                                     ET.SubElement(holder_elem, "wid").text = holder.wid
-                                ET.SubElement(holder_elem, "street_address").text = holder.street_address
+                                ET.SubElement(
+                                    holder_elem, "street_address"
+                                ).text = holder.street_address
                                 ET.SubElement(holder_elem, "city").text = holder.city
-                                ET.SubElement(holder_elem, "postal_code").text = holder.postal_code
-                        
+                                ET.SubElement(
+                                    holder_elem, "postal_code"
+                                ).text = holder.postal_code
+
                         # Beneficiaries
                         beneficiaries_elem = ET.SubElement(iban_elem, "beneficiaries")
                         for beneficiary in record.beneficiaries:
-                            beneficiary_elem = ET.SubElement(beneficiaries_elem, "beneficiary")
+                            beneficiary_elem = ET.SubElement(
+                                beneficiaries_elem, "beneficiary"
+                            )
                             if isinstance(beneficiary, LegalEntity):
-                                ET.SubElement(beneficiary_elem, "type").text = "legal_entity"
-                                ET.SubElement(beneficiary_elem, "name").text = beneficiary.name
-                                ET.SubElement(beneficiary_elem, "wid").text = beneficiary.wid
-                                ET.SubElement(beneficiary_elem, "street_address").text = beneficiary.street_address
-                                ET.SubElement(beneficiary_elem, "city").text = beneficiary.city
-                                ET.SubElement(beneficiary_elem, "postal_code").text = beneficiary.postal_code
+                                ET.SubElement(
+                                    beneficiary_elem, "type"
+                                ).text = "legal_entity"
+                                ET.SubElement(
+                                    beneficiary_elem, "name"
+                                ).text = beneficiary.name
+                                ET.SubElement(
+                                    beneficiary_elem, "wid"
+                                ).text = beneficiary.wid
+                                ET.SubElement(
+                                    beneficiary_elem, "street_address"
+                                ).text = beneficiary.street_address
+                                ET.SubElement(
+                                    beneficiary_elem, "city"
+                                ).text = beneficiary.city
+                                ET.SubElement(
+                                    beneficiary_elem, "postal_code"
+                                ).text = beneficiary.postal_code
                             else:
-                                ET.SubElement(beneficiary_elem, "type").text = "natural_person"
-                                ET.SubElement(beneficiary_elem, "first_name").text = beneficiary.first_name
-                                ET.SubElement(beneficiary_elem, "last_name").text = beneficiary.last_name
-                                ET.SubElement(beneficiary_elem, "birth_date").text = str(beneficiary.birth_date)
-                                ET.SubElement(beneficiary_elem, "tax_id").text = beneficiary.tax_id
+                                ET.SubElement(
+                                    beneficiary_elem, "type"
+                                ).text = "natural_person"
+                                ET.SubElement(
+                                    beneficiary_elem, "first_name"
+                                ).text = beneficiary.first_name
+                                ET.SubElement(
+                                    beneficiary_elem, "last_name"
+                                ).text = beneficiary.last_name
+                                ET.SubElement(
+                                    beneficiary_elem, "birth_date"
+                                ).text = str(beneficiary.birth_date)
+                                ET.SubElement(
+                                    beneficiary_elem, "tax_id"
+                                ).text = beneficiary.tax_id
                                 if beneficiary.wid:
-                                    ET.SubElement(beneficiary_elem, "wid").text = beneficiary.wid
-                                ET.SubElement(beneficiary_elem, "street_address").text = beneficiary.street_address
-                                ET.SubElement(beneficiary_elem, "city").text = beneficiary.city
-                                ET.SubElement(beneficiary_elem, "postal_code").text = beneficiary.postal_code
-                        
+                                    ET.SubElement(
+                                        beneficiary_elem, "wid"
+                                    ).text = beneficiary.wid
+                                ET.SubElement(
+                                    beneficiary_elem, "street_address"
+                                ).text = beneficiary.street_address
+                                ET.SubElement(
+                                    beneficiary_elem, "city"
+                                ).text = beneficiary.city
+                                ET.SubElement(
+                                    beneficiary_elem, "postal_code"
+                                ).text = beneficiary.postal_code
+
                         bank_elem = ET.SubElement(iban_elem, "bank")
                         ET.SubElement(bank_elem, "name").text = record.bank.name
                         ET.SubElement(bank_elem, "bic").text = record.bank.bic
@@ -1071,14 +1263,16 @@ def main(
                         holders_data = []
                         for holder in record.account_holders:
                             if isinstance(holder, LegalEntity):
-                                holders_data.append({
-                                    "type": "legal_entity",
-                                    "name": holder.name,
-                                    "wid": holder.wid,
-                                    "street_address": holder.street_address,
-                                    "city": holder.city,
-                                    "postal_code": holder.postal_code
-                                })
+                                holders_data.append(
+                                    {
+                                        "type": "legal_entity",
+                                        "name": holder.name,
+                                        "wid": holder.wid,
+                                        "street_address": holder.street_address,
+                                        "city": holder.city,
+                                        "postal_code": holder.postal_code,
+                                    }
+                                )
                             else:
                                 holder_data = {
                                     "type": "natural_person",
@@ -1088,24 +1282,26 @@ def main(
                                     "tax_id": holder.tax_id,
                                     "street_address": holder.street_address,
                                     "city": holder.city,
-                                    "postal_code": holder.postal_code
+                                    "postal_code": holder.postal_code,
                                 }
                                 if holder.wid:
                                     holder_data["wid"] = holder.wid
                                 holders_data.append(holder_data)
-                        
+
                         # Beneficiaries
                         beneficiaries_data = []
                         for beneficiary in record.beneficiaries:
                             if isinstance(beneficiary, LegalEntity):
-                                beneficiaries_data.append({
-                                    "type": "legal_entity",
-                                    "name": beneficiary.name,
-                                    "wid": beneficiary.wid,
-                                    "street_address": beneficiary.street_address,
-                                    "city": beneficiary.city,
-                                    "postal_code": beneficiary.postal_code
-                                })
+                                beneficiaries_data.append(
+                                    {
+                                        "type": "legal_entity",
+                                        "name": beneficiary.name,
+                                        "wid": beneficiary.wid,
+                                        "street_address": beneficiary.street_address,
+                                        "city": beneficiary.city,
+                                        "postal_code": beneficiary.postal_code,
+                                    }
+                                )
                             else:
                                 beneficiary_data = {
                                     "type": "natural_person",
@@ -1115,22 +1311,24 @@ def main(
                                     "tax_id": beneficiary.tax_id,
                                     "street_address": beneficiary.street_address,
                                     "city": beneficiary.city,
-                                    "postal_code": beneficiary.postal_code
+                                    "postal_code": beneficiary.postal_code,
                                 }
                                 if beneficiary.wid:
                                     beneficiary_data["wid"] = beneficiary.wid
                                 beneficiaries_data.append(beneficiary_data)
-                        
-                        data.append({
-                            "iban": record.iban,
-                            "account_holders": holders_data,
-                            "beneficiaries": beneficiaries_data,
-                            "bank": {
-                                "name": record.bank.name,
-                                "bic": record.bank.bic,
-                                "code": record.bank.bankleitzahl,
-                            },
-                        })
+
+                        data.append(
+                            {
+                                "iban": record.iban,
+                                "account_holders": holders_data,
+                                "beneficiaries": beneficiaries_data,
+                                "bank": {
+                                    "name": record.bank.name,
+                                    "bic": record.bank.bic,
+                                    "code": record.bank.bankleitzahl,
+                                },
+                            }
+                        )
                     print(json.dumps(data, ensure_ascii=False, indent=2))
             else:
                 # Default plain format (same as old stdout format)
@@ -1155,15 +1353,25 @@ def main(
                 formatter.format_json(ibans, str(output), clean)
 
         if not clean:
-            click.echo(style(f"Successfully generated {len(ibans)} IBANs", fg="green", bold=True), err=True)
+            click.echo(
+                style(
+                    f"Successfully generated {len(ibans)} IBANs", fg="green", bold=True
+                ),
+                err=True,
+            )
 
     except Exception as e:
         raise click.ClickException(f"Error: {e}")
 
 
-
 @click.command(help="Erstellt eine Default-Konfigurationsdatei an der Standard-Stelle")
-@click.option("--path", "path_opt", type=click.Path(path_type=Path), required=False, help="Optionaler Zielpfad für die Konfigurationsdatei")
+@click.option(
+    "--path",
+    "path_opt",
+    type=click.Path(path_type=Path),
+    required=False,
+    help="Optionaler Zielpfad für die Konfigurationsdatei",
+)
 @click.pass_context
 def init_config(ctx: click.Context, path_opt: Optional[Path] = None) -> None:
     """CLI-Kommando: Default-Konfiguration schreiben und Speicherort ausgeben."""
@@ -1172,7 +1380,9 @@ def init_config(ctx: click.Context, path_opt: Optional[Path] = None) -> None:
             target = Path(path_opt)
         else:
             # Use global --config-dir if provided, otherwise OS default path
-            cfg_dir = (ctx.obj or {}).get("config_dir") if isinstance(ctx.obj, dict) else None
+            cfg_dir = (
+                (ctx.obj or {}).get("config_dir") if isinstance(ctx.obj, dict) else None
+            )
             if cfg_dir:
                 Path(cfg_dir).mkdir(parents=True, exist_ok=True)
                 target = Path(cfg_dir) / "config.toml"
@@ -1181,11 +1391,17 @@ def init_config(ctx: click.Context, path_opt: Optional[Path] = None) -> None:
         created = write_default_config_file(target)
         click.echo(f"Default-Konfiguration wurde erstellt: {created}")
     except Exception as e:
-        raise click.ClickException(f"Konfigurationsdatei konnte nicht erstellt werden: {e}")
+        raise click.ClickException(
+            f"Konfigurationsdatei konnte nicht erstellt werden: {e}"
+        )
 
 
 # Define a Click group to support subcommands like `gen` and `init`
-@click.group(cls=click.Group, help="gen-ibans command suite with subcommands", invoke_without_command=True)
+@click.group(
+    cls=click.Group,
+    help="gen-ibans command suite with subcommands",
+    invoke_without_command=True,
+)
 @click.option(
     "--config-dir",
     "global_config_dir",
@@ -1194,9 +1410,18 @@ def init_config(ctx: click.Context, path_opt: Optional[Path] = None) -> None:
     help="Global: Ordner, in dem Konfigurationsdateien gesucht/geschrieben werden (wirkt auf Unterkommandos)",
 )
 @click.option("-v", "--version", is_flag=True, help="Show version and exit")
-@click.option("--show-config-path", is_flag=True, help="Zeige den Pfad zur Konfigurationsdatei und beende")
+@click.option(
+    "--show-config-path",
+    is_flag=True,
+    help="Zeige den Pfad zur Konfigurationsdatei und beende",
+)
 @click.pass_context
-def cli(ctx: click.Context, global_config_dir: Optional[Path], version: bool, show_config_path: bool) -> None:
+def cli(
+    ctx: click.Context,
+    global_config_dir: Optional[Path],
+    version: bool,
+    show_config_path: bool,
+) -> None:
     """Command group entry point."""
     # Store global options for subcommands
     ctx.ensure_object(dict)
@@ -1206,6 +1431,7 @@ def cli(ctx: click.Context, global_config_dir: Optional[Path], version: bool, sh
     if version and ctx.invoked_subcommand is None:
         try:
             from importlib.metadata import version as _ver
+
             click.echo(_ver("gen-ibans"))
         except Exception:
             click.echo(__version__)
@@ -1214,6 +1440,7 @@ def cli(ctx: click.Context, global_config_dir: Optional[Path], version: bool, sh
     if show_config_path and ctx.invoked_subcommand is None:
         click.echo(str(get_default_config_path()))
         ctx.exit(0)
+
 
 # Register subcommands
 cli.add_command(main, name="gen")

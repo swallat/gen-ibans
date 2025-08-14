@@ -21,6 +21,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+
 # Configuration management utilities for gen-ibans.
 from __future__ import annotations
 
@@ -34,12 +35,15 @@ from platformdirs import PlatformDirs
 try:
     from confz import ConfZ, ConfZFileSource
     from pydantic import BaseModel, Field
+
     _CONFZ_AVAILABLE = True
 except Exception:  # pragma: no cover
     _CONFZ_AVAILABLE = False
     BaseModel = object  # type: ignore
+
     def Field(*args, **kwargs):  # type: ignore
         return None
+
 
 # Allowed configuration keys that map to GeneratorConfig fields
 _ALLOWED_KEYS = {
@@ -54,38 +58,46 @@ _ALLOWED_KEYS = {
 
 
 class GeneratorSectionModel(BaseModel):  # type: ignore[misc]
-    account_holder_distribution: Any = Field(default_factory=lambda: [
-        [1, 0.70],
-        [2, 0.15],
-        [10, 0.14],
-        [100, 0.009],
-        [1000, 0.001],
-    ])
-    beneficial_owner_distribution: Any = Field(default_factory=lambda: [
-        [0, 0.70],
-        [1, 0.20],
-        [2, 0.05],
-        [10, 0.04],
-        [50, 0.009],
-        [1000, 0.001],
-    ])
+    account_holder_distribution: Any = Field(
+        default_factory=lambda: [
+            [1, 0.70],
+            [2, 0.15],
+            [10, 0.14],
+            [100, 0.009],
+            [1000, 0.001],
+        ]
+    )
+    beneficial_owner_distribution: Any = Field(
+        default_factory=lambda: [
+            [0, 0.70],
+            [1, 0.20],
+            [2, 0.05],
+            [10, 0.04],
+            [50, 0.009],
+            [1000, 0.001],
+        ]
+    )
     legal_entity_probability: float = 0.05
     beneficiary_legal_entity_probability: float = 0.0
     economically_active_probability: float = 0.20
-    wid_feature_distribution: Any = Field(default_factory=lambda: [
-        [1, 0.80],
-        [10, 0.15],
-        [100, 0.04],
-        [99999, 0.01],
-    ])
-    person_reuse_distribution: Any = Field(default_factory=lambda: [
-        [1, 0.8],
-        [2, 0.1],
-        [5, 0.05],
-        [15, 0.03],
-        [50, 0.019],
-        [200, 0.001],
-    ])
+    wid_feature_distribution: Any = Field(
+        default_factory=lambda: [
+            [1, 0.80],
+            [10, 0.15],
+            [100, 0.04],
+            [99999, 0.01],
+        ]
+    )
+    person_reuse_distribution: Any = Field(
+        default_factory=lambda: [
+            [1, 0.8],
+            [2, 0.1],
+            [5, 0.05],
+            [15, 0.03],
+            [50, 0.019],
+            [200, 0.001],
+        ]
+    )
 
 
 class CLISectionModel(BaseModel):  # type: ignore[misc]
@@ -167,6 +179,7 @@ def load_config_from_file(config_path: Optional[Path] = None) -> Dict[str, Any]:
             return {}
 
         if _CONFZ_AVAILABLE:
+
             class Config(ConfZ):  # type: ignore[misc]
                 generator: GeneratorSectionModel
                 _descriptions: Dict[str, Any] = {}
@@ -182,12 +195,14 @@ def load_config_from_file(config_path: Optional[Path] = None) -> Dict[str, Any]:
             if path.suffix.lower() == ".toml":
                 try:
                     import tomllib  # Python >=3.11
+
                     with open(path, "rb") as f:
                         data = tomllib.load(f)
                 except Exception:
                     # Fallback to 'toml' package if available
                     try:
                         import toml  # type: ignore
+
                         with open(path, "r", encoding="utf-8") as f:
                             data = toml.load(f)
                     except Exception:
@@ -226,24 +241,37 @@ def load_full_config(config_path: Optional[Path] = None) -> Dict[str, Dict[str, 
     if not existing:
         # Return defaults
         return {
-            "generator": GeneratorSectionModel().__dict__ if hasattr(GeneratorSectionModel(), "__dict__") else dict(GeneratorSectionModel()),
-            "cli": CLISectionModel().__dict__ if hasattr(CLISectionModel(), "__dict__") else dict(CLISectionModel()),
-            "downloader": DownloaderSectionModel().__dict__ if hasattr(DownloaderSectionModel(), "__dict__") else dict(DownloaderSectionModel()),
+            "generator": GeneratorSectionModel().__dict__
+            if hasattr(GeneratorSectionModel(), "__dict__")
+            else dict(GeneratorSectionModel()),
+            "cli": CLISectionModel().__dict__
+            if hasattr(CLISectionModel(), "__dict__")
+            else dict(CLISectionModel()),
+            "downloader": DownloaderSectionModel().__dict__
+            if hasattr(DownloaderSectionModel(), "__dict__")
+            else dict(DownloaderSectionModel()),
         }
 
     try:
         if _CONFZ_AVAILABLE:
+
             class FullConfig(ConfZ):  # type: ignore[misc]
                 generator: GeneratorSectionModel
                 cli: CLISectionModel = Field(default_factory=CLISectionModel)
-                downloader: DownloaderSectionModel = Field(default_factory=DownloaderSectionModel)
+                downloader: DownloaderSectionModel = Field(
+                    default_factory=DownloaderSectionModel
+                )
                 _descriptions: Dict[str, Any] = {}
                 CONFIG_SOURCES = tuple(ConfZFileSource(file=str(p)) for p in existing)
 
             cfg = FullConfig()  # type: ignore[call-arg]
             gen = cfg.generator
             cli = cfg.cli if hasattr(cfg, "cli") else CLISectionModel()  # type: ignore
-            dl = cfg.downloader if hasattr(cfg, "downloader") else DownloaderSectionModel()  # type: ignore
+            dl = (
+                cfg.downloader
+                if hasattr(cfg, "downloader")
+                else DownloaderSectionModel()
+            )  # type: ignore
             gen_dict = gen.__dict__ if hasattr(gen, "__dict__") else dict(gen)
             cli_dict = cli.__dict__ if hasattr(cli, "__dict__") else dict(cli)
             dl_dict = dl.__dict__ if hasattr(dl, "__dict__") else dict(dl)
@@ -254,11 +282,13 @@ def load_full_config(config_path: Optional[Path] = None) -> Dict[str, Dict[str, 
             if path.suffix.lower() == ".toml":
                 try:
                     import tomllib
+
                     with open(path, "rb") as f:
                         data = tomllib.load(f)
                 except Exception:
                     try:
                         import toml  # type: ignore
+
                         with open(path, "r", encoding="utf-8") as f:
                             data = toml.load(f)
                     except Exception:
@@ -270,9 +300,19 @@ def load_full_config(config_path: Optional[Path] = None) -> Dict[str, Dict[str, 
                 except Exception:
                     data = {}
             data = data if isinstance(data, dict) else {}
-            gen_dict = data.get("generator", {}) if isinstance(data.get("generator", {}), dict) else {}
-            cli_dict = data.get("cli", {}) if isinstance(data.get("cli", {}), dict) else {}
-            dl_dict = data.get("downloader", {}) if isinstance(data.get("downloader", {}), dict) else {}
+            gen_dict = (
+                data.get("generator", {})
+                if isinstance(data.get("generator", {}), dict)
+                else {}
+            )
+            cli_dict = (
+                data.get("cli", {}) if isinstance(data.get("cli", {}), dict) else {}
+            )
+            dl_dict = (
+                data.get("downloader", {})
+                if isinstance(data.get("downloader", {}), dict)
+                else {}
+            )
             # Filter generator keys
             gen_dict = {k: v for k, v in gen_dict.items() if k in _ALLOWED_KEYS}
             return {"generator": gen_dict, "cli": cli_dict, "downloader": dl_dict}
@@ -324,11 +364,11 @@ def default_config_toml() -> str:
         "\n"
         "[downloader]\n"
         "# Standardformat beim automatischen Download von der Bundesbank (csv|txt|xml).\n"
-        "download_format = \"csv\"\n"
+        'download_format = "csv"\n'
         "# Erzwinge Neu-Download auch wenn Cache vorhanden ist.\n"
         "force_download = false\n"
         "# Optionaler Cache-Ordner (Pfad als String).\n"
-        "# cache_dir = \".\\cache\"\n"
+        '# cache_dir = ".\\cache"\n'
         "# Online-Versionsprüfung deaktivieren (nur Cache-Alter nutzen).\n"
         "no_version_check = false\n"
         "\n"
@@ -338,9 +378,9 @@ def default_config_toml() -> str:
         "# Fester Seed für deterministische Ergebnisse (optional).\n"
         "# seed = 12345\n"
         "# Ausgabeformat (txt|csv|xml|json); leer bedeutet Plain-Text.\n"
-        "# output_format = \"json\"\n"
+        '# output_format = "json"\n'
         "# Ausgabedatei-Pfad; leer bedeutet stdout.\n"
-        "# output = \".\\ibans.json\"\n"
+        '# output = ".\\ibans.json"\n'
         "# Unterdrücke stdout, wenn in Datei geschrieben wird.\n"
         "no_echo = false\n"
         "# Nur IBANs ohne Bank- und Personendaten ausgeben.\n"
