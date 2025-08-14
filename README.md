@@ -606,9 +606,11 @@ To create a new release of this project:
 
 1. **Create and push a version tag**:
    ```bash
-   # Create a new tag (replace x.y.z with your version number)
-   git tag v1.0.0
-   git push origin v1.0.0
+   # Create a new tag for the next release (don’t run until after merge into master/main)
+   # Next planned release: v2.0.0
+   # When ready:
+   # git tag v2.0.0
+   # git push origin v2.0.0
    ```
 
 2. **Automatic process**: Once you push a tag starting with `v*`, GitHub Actions will automatically:

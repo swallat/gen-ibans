@@ -5,7 +5,11 @@ All notable changes to the German IBAN Generator project will be documented in t
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2025-08-14
+## [Unreleased]
+
+_No unreleased changes yet._
+
+## [2.0.0] - 2025-08-14
 
 ### Added
 - New automated test reporting setup:
@@ -17,9 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [cli]: defaults for count, seed, output_format, output path and common flags (no_echo, iban_only, no_personal_info, no_bank_info, clean, no_color)
 - New CLI options:
   - `--show-config-path` to print the effective default config path
-  - `--write-default-config` to generate a commented default `config.toml`
-  - `--config-dir` to select the directory for writing `config.toml` (default: current directory)
-- Separate `gen-ibans-init-config` command to create a default config file at the OS default path
+  - `--config-dir` to influence where config files are searched/written (used with subcommands)
+- New subcommand:
+  - `gen-ibans init` to create a commented default `config.toml` (respects the top-level `--config-dir` when provided)
 - Colorized CLI help with highlighted option group headers for improved readability
 
 ### Changed
@@ -40,6 +44,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Updated
 - **Dependencies**: Added ConfZ and PlatformDirs; updated typing-extensions and related transitive dependencies
+
+### Breaking Changes
+- CLI now uses subcommands:
+  - Generation is `gen-ibans gen ...` (was `gen-ibans ...`).
+  - Config initialization is `gen-ibans init` (replaces separate `gen-ibans-init-config`).
+- Global options moved to the top-level: use `gen-ibans --config-dir ... <subcommand>` and `gen-ibans --show-config-path`.
+- The former `gen-ibans gen --write-default-config` option was removed. Use `gen-ibans init` (optionally with `--path` or top-level `--config-dir`).
+- Default config format is now TOML (`config.toml`). Existing `config.json` files are still supported for backward compatibility, but new default files are written as TOML.
 
 ## [1.0.1] - 2025-08-13
 
@@ -148,5 +160,7 @@ This initial release provides a complete, production-ready IBAN generator with:
 - Professional development infrastructure
 - Extensive documentation and setup automation
 
-[Unreleased]: https://github.com/example/gen-ibans/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/example/gen-ibans/releases/tag/v0.1.0
+[Unreleased]: https://github.com/swallat/gen-ibans/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/swallat/gen-ibans/compare/v1.0.1...v2.0.0
+[1.0.1]: https://github.com/swallat/gen-ibans/releases/tag/v1.0.1
+[1.0.0]: https://github.com/swallat/gen-ibans/releases/tag/v1.0.0
