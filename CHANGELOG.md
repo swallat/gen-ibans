@@ -5,6 +5,17 @@ All notable changes to the German IBAN Generator project will be documented in t
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 2025-08-14
+
+### Changed
+- **XML Output Format**: Updated XML structure for better consistency
+  - Root element changed from `<ibans>` to `<accounts>`
+  - Individual entries changed from `<iban><number>` to `<account><iban>`
+  - Maintains backward compatibility in terms of data content
+
+### Updated
+- **Dependencies**: Updated typing-extensions dependency versions
+
 ## [1.0.1] - 2025-08-13
 
 Rerelease to push to PyPI.

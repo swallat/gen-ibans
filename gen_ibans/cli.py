@@ -155,11 +155,11 @@ class OutputFormatter:
     ) -> None:
         """Output IBANs to an XML file."""
         try:
-            root = ET.Element("ibans")
+            root = ET.Element("accounts")
 
             for record in ibans:
-                iban_elem = ET.SubElement(root, "iban")
-                ET.SubElement(iban_elem, "number").text = record.iban
+                iban_elem = ET.SubElement(root, "account")
+                ET.SubElement(iban_elem, "iban").text = record.iban
 
                 # Personal info
                 person_elem = ET.SubElement(iban_elem, "person")
@@ -426,10 +426,10 @@ def main(
                     # Output XML format to stdout
                     import xml.dom.minidom
 
-                    root = ET.Element("ibans")
+                    root = ET.Element("accounts")
                     for record in ibans:
-                        iban_elem = ET.SubElement(root, "iban")
-                        ET.SubElement(iban_elem, "number").text = record.iban
+                        iban_elem = ET.SubElement(root, "account")
+                        ET.SubElement(iban_elem, "iban").text = record.iban
                         person_elem = ET.SubElement(iban_elem, "person")
                         ET.SubElement(
                             person_elem, "first_name"
