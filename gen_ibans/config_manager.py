@@ -112,6 +112,10 @@ class CLISectionModel(BaseModel):  # type: ignore[misc]
     no_bank_info: bool = False
     clean: bool = False
     no_color: bool = False
+    # Optional regex filters
+    filter_bank_name: Optional[str] = None
+    filter_bic: Optional[str] = None
+    filter_blz: Optional[str] = None
 
 
 class DownloaderSectionModel(BaseModel):  # type: ignore[misc]
@@ -393,6 +397,18 @@ def default_config_toml() -> str:
         "clean = false\n"
         "# Farbige Ausgabe deaktivieren.\n"
         "no_color = false\n"
+        "#\n"
+        "# Regex-Filter für Bankenliste (optional). CLI-Flags überschreiben diese Werte.\n"
+        "# Beachte: filter_bank_name und filter_bic sind case-insensitive; filter_blz ist exakt.\n"
+        "# Beispiele:\n"
+        '# filter_bank_name = "(Sparkasse|Volksbank)"\n'
+        '# filter_bic = "DEUTDEFF.*"\n'
+        '# filter_blz = "^10020030$"\n'
+        "#\n"
+        "# Standardmäßig sind keine Filter gesetzt (alle Banken).\n"
+        '# filter_bank_name = ""\n'
+        '# filter_bic = ""\n'
+        '# filter_blz = ""\n'
     )
 
 
