@@ -1246,7 +1246,7 @@ def _apply_bank_filters(
             filtered_banks = [
                 b for b in filtered_banks if pat_blz.search(b.bankleitzahl or "")
             ]
-        if (filter_bank_name or filter_bic or filter_blz) is not None:
+        if filter_bank_name or filter_bic or filter_blz:
             generator.banks = filtered_banks
             if not generator.banks:
                 raise click.ClickException("No banks match the provided filter(s).")
