@@ -1174,8 +1174,6 @@ def _merge_defaults(
         "no_bank_info": no_bank_info,
         "clean": clean,
         "no_color": no_color,
-        "filter_bank_name": locals().get("filter_bank_name"),
-        "filter_bic": locals().get("filter_bic"),
         "filter_bank_name": filter_bank_name,
         "filter_bic": filter_bic,
         "filter_blz": filter_blz,
