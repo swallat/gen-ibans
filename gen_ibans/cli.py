@@ -1097,7 +1097,7 @@ def _merge_defaults(
         ):
             no_version_check = dl_cfg["no_version_check"]
         # CLI-related defaults
-        if "seed" not in provided_params and (cli_cfg.get("seed") is not None):
+        if "seed" not in provided_params and cli_cfg.get("seed") is not None:
             try:
                 seed = int(cli_cfg["seed"])  # type: ignore
             except Exception:
