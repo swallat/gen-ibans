@@ -1345,7 +1345,7 @@ def _build_generator_config(
         p2 = wid_feature_00002_00010_prob if p2_provided else current_map.get(10, 0.099)
         # If the sum exceeds 1.0, normalize proportionally only among the provided values
         total = p0 + p1 + p2
-        if total > 1.0 and total > 0:
+        if total > 1.0:
             # Determine which were explicitly provided to preserve user intent
             provided_flags = [p0_provided, p1_provided, p2_provided]
             vals = [p0, p1, p2]
