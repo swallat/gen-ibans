@@ -60,11 +60,21 @@ def test_wid_generation():
                 if isinstance(holder, LegalEntity):
                     print(f"  {j}. {holder.name} (Legal Entity)")
                     print(f"     WID: {holder.wid}")
-                    # Verify WID format for legal entities: "DE" + 9 digits
+                    # Verify WID format for legal entities: 'DE' + 9 digits, optionally '-' + 5 digits
+                    wid = holder.wid
+                    base, sep, feature = wid.partition("-")
                     if not (
-                        holder.wid.startswith("DE")
-                        and len(holder.wid) == 11
-                        and holder.wid[2:].isdigit()
+                        wid.startswith("DE")
+                        and (
+                            (sep == "" and len(wid) == 11 and wid[2:].isdigit())
+                            or (
+                                sep == "-"
+                                and len(base) == 11
+                                and base[2:].isdigit()
+                                and len(feature) == 5
+                                and feature.isdigit()
+                            )
+                        )
                     ):
                         print(
                             f"     ERROR: Invalid WID format for legal entity: {holder.wid}"
@@ -72,8 +82,22 @@ def test_wid_generation():
                 else:
                     print(f"  {j}. {holder.full_name}")
                     print(f"     WID: {holder.wid}")
-                    # Verify WID format for natural persons: 11 digits
-                    if not (len(holder.wid) == 11 and holder.wid.isdigit()):
+                    # Verify WID format for natural persons: 'DE' + 10 digits, optionally '-' + 5 digits
+                    wid = holder.wid
+                    base, sep, feature = wid.partition("-")
+                    if not (
+                        wid.startswith("DE")
+                        and (
+                            (sep == "" and len(wid) == 12 and wid[2:].isdigit())
+                            or (
+                                sep == "-"
+                                and len(base) == 12
+                                and base[2:].isdigit()
+                                and len(feature) == 5
+                                and feature.isdigit()
+                            )
+                        )
+                    ):
                         print(
                             f"     ERROR: Invalid WID format for natural person: {holder.wid}"
                         )

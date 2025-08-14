@@ -27,22 +27,9 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Optional, Dict, Any
-import json
 
 from platformdirs import PlatformDirs
-
-# Prefer confz for configuration handling; fall back gracefully if missing.
-try:
-    from confz import ConfZ, ConfZFileSource
-    from pydantic import BaseModel, Field
-
-    _CONFZ_AVAILABLE = True
-except Exception:  # pragma: no cover
-    _CONFZ_AVAILABLE = False
-    BaseModel = object  # type: ignore
-
-    def Field(*args, **kwargs):  # type: ignore
-        return None
+from pydantic import BaseModel, Field
 
 
 # Allowed configuration keys that map to GeneratorConfig fields
@@ -82,10 +69,10 @@ class GeneratorSectionModel(BaseModel):  # type: ignore[misc]
     economically_active_probability: float = 0.20
     wid_feature_distribution: Any = Field(
         default_factory=lambda: [
-            [1, 0.80],
-            [10, 0.15],
-            [100, 0.04],
-            [99999, 0.01],
+            [0, 0.70],
+            [1, 0.10],
+            [10, 0.099],
+            [99999, 0.001],
         ]
     )
     person_reuse_distribution: Any = Field(
@@ -129,7 +116,6 @@ class AppConfigModel(BaseModel):  # type: ignore[misc]
     generator: GeneratorSectionModel = Field(default_factory=GeneratorSectionModel)
     cli: CLISectionModel = Field(default_factory=CLISectionModel)
     downloader: DownloaderSectionModel = Field(default_factory=DownloaderSectionModel)
-    _descriptions: Dict[str, Any] = Field(default_factory=dict)
 
 
 def get_default_config_path() -> Path:
@@ -158,13 +144,13 @@ def get_config_search_paths() -> list[Path]:
 
 
 def load_config_from_file(config_path: Optional[Path] = None) -> Dict[str, Any]:
-    """Load generator configuration values using ConfZ (if available) from TOML/JSON file(s).
+    """Load generator configuration values using ConfZ from TOML file(s) only.
 
     Behavior:
     - If config_path is provided, only that file is used.
     - Otherwise, search in get_config_search_paths() for a file named "config.toml"
-      first, then "config.json" in each directory (current dir first), and use all
-      existing ones in precedence order for ConfZ.
+      in each directory (current dir first), and use all existing ones in precedence
+      order for ConfZ (later paths override earlier ones).
 
     Returns a dict with keys matching GeneratorConfig fields. Unknown keys are ignored.
     If no file exists, or values are invalid, returns an empty dict.
@@ -173,61 +159,45 @@ def load_config_from_file(config_path: Optional[Path] = None) -> Dict[str, Any]:
         if config_path is not None:
             candidates = [Path(config_path)]
         else:
-            candidates = []
-            for base in get_config_search_paths():
-                candidates.append(base / "config.toml")
-            for base in get_config_search_paths():
-                candidates.append(base / "config.json")
+            candidates = [base / "config.toml" for base in get_config_search_paths()]
         existing = [p for p in candidates if p.exists()]
         if not existing:
             return {}
 
-        if _CONFZ_AVAILABLE:
+        try:
+            from confz import ConfZ, ConfZFileSource  # type: ignore
 
             class Config(ConfZ):  # type: ignore[misc]
                 generator: GeneratorSectionModel
-                _descriptions: Dict[str, Any] = {}
                 CONFIG_SOURCES = tuple(ConfZFileSource(file=str(p)) for p in existing)
 
             cfg = Config()  # type: ignore[call-arg]
             gen = cfg.generator
             gen_dict = gen.__dict__ if hasattr(gen, "__dict__") else dict(gen)
-        else:
-            # Fallback: load the first existing file manually (TOML preferred)
-            path = existing[0]
-            # Try to parse TOML or JSON based on extension
-            if path.suffix.lower() == ".toml":
-                try:
-                    import tomllib  # Python >=3.11
+            return {k: v for k, v in gen_dict.items() if k in _ALLOWED_KEYS}
+        except Exception:
+            # Compatibility shim: if confz is not available, parse TOML manually.
+            try:
+                path = existing[0]
+                import tomllib
 
-                    with open(path, "rb") as f:
-                        data = tomllib.load(f)
-                except Exception:
-                    # Fallback to 'toml' package if available
-                    try:
-                        import toml  # type: ignore
-
-                        with open(path, "r", encoding="utf-8") as f:
-                            data = toml.load(f)
-                    except Exception:
-                        return {}
-            else:
-                with open(path, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-            if not isinstance(data, dict):
+                with open(path, "rb") as f:
+                    data = tomllib.load(f)
+                if not isinstance(data, dict):
+                    return {}
+                gen_dict = data.get("generator", {})
+                if not isinstance(gen_dict, dict):
+                    return {}
+                return {k: v for k, v in gen_dict.items() if k in _ALLOWED_KEYS}
+            except Exception:
                 return {}
-            # Expect structure with a [generator] table/object
-            gen_dict = data.get("generator", {}) if isinstance(data, dict) else {}
-            if not isinstance(gen_dict, dict):
-                return {}
-        return {k: v for k, v in gen_dict.items() if k in _ALLOWED_KEYS}
     except Exception:
         # Fail safe: ignore broken configs
         return {}
 
 
 def load_full_config(config_path: Optional[Path] = None) -> Dict[str, Dict[str, Any]]:
-    """Load full configuration (generator, cli, downloader) from TOML/JSON.
+    """Load full configuration (generator, cli, downloader) from TOML via ConfZ.
 
     Returns a dict with keys: "generator", "cli", "downloader". Missing sections
     default to their model defaults. Unknown keys are ignored.
@@ -236,11 +206,7 @@ def load_full_config(config_path: Optional[Path] = None) -> Dict[str, Dict[str, 
     if config_path is not None:
         candidates = [Path(config_path)]
     else:
-        candidates = []
-        for base in get_config_search_paths():
-            candidates.append(base / "config.toml")
-        for base in get_config_search_paths():
-            candidates.append(base / "config.json")
+        candidates = [base / "config.toml" for base in get_config_search_paths()]
     existing = [p for p in candidates if p.exists()]
     if not existing:
         # Return defaults
@@ -257,7 +223,8 @@ def load_full_config(config_path: Optional[Path] = None) -> Dict[str, Dict[str, 
         }
 
     try:
-        if _CONFZ_AVAILABLE:
+        try:
+            from confz import ConfZ, ConfZFileSource  # type: ignore
 
             class FullConfig(ConfZ):  # type: ignore[misc]
                 generator: GeneratorSectionModel
@@ -265,61 +232,45 @@ def load_full_config(config_path: Optional[Path] = None) -> Dict[str, Dict[str, 
                 downloader: DownloaderSectionModel = Field(
                     default_factory=DownloaderSectionModel
                 )
-                _descriptions: Dict[str, Any] = {}
                 CONFIG_SOURCES = tuple(ConfZFileSource(file=str(p)) for p in existing)
 
             cfg = FullConfig()  # type: ignore[call-arg]
             gen = cfg.generator
-            cli = cfg.cli if hasattr(cfg, "cli") else CLISectionModel()  # type: ignore
-            dl = (
-                cfg.downloader
-                if hasattr(cfg, "downloader")
-                else DownloaderSectionModel()
-            )  # type: ignore
+            cli = cfg.cli  # type: ignore
+            dl = cfg.downloader  # type: ignore
             gen_dict = gen.__dict__ if hasattr(gen, "__dict__") else dict(gen)
             cli_dict = cli.__dict__ if hasattr(cli, "__dict__") else dict(cli)
             dl_dict = dl.__dict__ if hasattr(dl, "__dict__") else dict(dl)
-            return {"generator": gen_dict, "cli": cli_dict, "downloader": dl_dict}
-        else:
-            # Fallback: load first existing file (prefer TOML) and read sections
-            path = existing[0]
-            if path.suffix.lower() == ".toml":
-                try:
-                    import tomllib
-
-                    with open(path, "rb") as f:
-                        data = tomllib.load(f)
-                except Exception:
-                    try:
-                        import toml  # type: ignore
-
-                        with open(path, "r", encoding="utf-8") as f:
-                            data = toml.load(f)
-                    except Exception:
-                        data = {}
-            else:
-                try:
-                    with open(path, "r", encoding="utf-8") as f:
-                        data = json.load(f)
-                except Exception:
-                    data = {}
-            data = data if isinstance(data, dict) else {}
-            gen_dict = (
-                data.get("generator", {})
-                if isinstance(data.get("generator", {}), dict)
-                else {}
-            )
-            cli_dict = (
-                data.get("cli", {}) if isinstance(data.get("cli", {}), dict) else {}
-            )
-            dl_dict = (
-                data.get("downloader", {})
-                if isinstance(data.get("downloader", {}), dict)
-                else {}
-            )
-            # Filter generator keys
+            # Filter generator keys to allowed ones only
             gen_dict = {k: v for k, v in gen_dict.items() if k in _ALLOWED_KEYS}
             return {"generator": gen_dict, "cli": cli_dict, "downloader": dl_dict}
+        except Exception:
+            # Compatibility shim: Manual TOML parsing as a last resort
+            try:
+                path = existing[0]
+                import tomllib
+
+                with open(path, "rb") as f:
+                    data = tomllib.load(f)
+                if not isinstance(data, dict):
+                    return {"generator": {}, "cli": {}, "downloader": {}}
+                gen_dict = (
+                    data.get("generator", {})
+                    if isinstance(data.get("generator", {}), dict)
+                    else {}
+                )
+                cli_dict = (
+                    data.get("cli", {}) if isinstance(data.get("cli", {}), dict) else {}
+                )
+                dl_dict = (
+                    data.get("downloader", {})
+                    if isinstance(data.get("downloader", {}), dict)
+                    else {}
+                )
+                gen_dict = {k: v for k, v in gen_dict.items() if k in _ALLOWED_KEYS}
+                return {"generator": gen_dict, "cli": cli_dict, "downloader": dl_dict}
+            except Exception:
+                return {"generator": {}, "cli": {}, "downloader": {}}
     except Exception:
         return {"generator": {}, "cli": {}, "downloader": {}}
 
@@ -357,10 +308,10 @@ def default_config_toml() -> str:
         "# Variante: häufiger 1 wirtschaftlich Berechtigter\n"
         "# beneficial_owner_distribution = [[0, 0.50], [1, 0.35], [2, 0.10], [10, 0.04], [50, 0.009], [1000, 0.001]]\n\n"
         "# WID Unterscheidungsmerkmal (nur natürliche Personen) als [max_wert, wahrscheinlichkeit].\n"
-        "# 1 -> 00001, 10 -> 00002-00010, 100 -> 00011-00100, 99999 -> 00101-99999\n"
-        "wid_feature_distribution = [[1, 0.80], [10, 0.15], [100, 0.04], [99999, 0.01]]\n"
+        "# 0 -> 00000 (kein Unterscheidungsmerkmal), 1 -> 00001, 10 -> 00002-00010, 99999 -> >=00011 (00011-99999)\n"
+        "wid_feature_distribution = [[0, 0.70], [1, 0.10], [10, 0.099], [99999, 0.001]]\n"
         "# Variante: mehr hohe Merkmale\n"
-        "# wid_feature_distribution = [[1, 0.60], [10, 0.20], [100, 0.15], [99999, 0.05]]\n\n"
+        "# wid_feature_distribution = [[0, 0.50], [1, 0.20], [10, 0.29], [99999, 0.01]]\n\n"
         "# Wiederverwendung von Personen (wie oft dieselbe Person vorkommt) als [max_anzahl, wahrscheinlichkeit].\n"
         "person_reuse_distribution = [[1, 0.8], [2, 0.1], [5, 0.05], [15, 0.03], [50, 0.019], [200, 0.001]]\n"
         "# Variante: mehr Wiederverwendung im Long Tail\n"

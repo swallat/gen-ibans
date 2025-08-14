@@ -28,8 +28,6 @@ import click
 import csv
 import json
 import sys
-import os
-import platform
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import List, Optional
@@ -53,111 +51,6 @@ except ImportError:
     import pkg_resources
 
     __version__ = pkg_resources.get_distribution("gen-ibans").version
-
-
-def _default_config_path() -> Path:
-    """Return OS-specific default config file path."""
-    system = platform.system().lower()
-    if system == "windows":
-        appdata = os.environ.get("APPDATA") or os.path.expanduser("~\\AppData\\Roaming")
-        base = Path(appdata)
-        return base / "gen-ibans" / "config.toml"
-    elif system == "darwin":
-        base = Path.home() / "Library" / "Application Support"
-        return base / "gen-ibans" / "config.toml"
-    else:
-        # Linux and others
-        base = Path(os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config")))
-        return base / "gen-ibans" / "config.toml"
-
-
-def _load_config_from_file(config_path: Optional[Path] = None) -> dict:
-    """Load configuration from JSON file if it exists.
-
-    Returns a dict with keys matching GeneratorConfig fields.
-    Unknown keys are ignored. If file does not exist or fails to parse,
-    returns an empty dict.
-    """
-    path = config_path or _default_config_path()
-    try:
-        if not path.exists():
-            return {}
-        with open(path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        # Expect structure { "generator": { ... }, "_descriptions": { ... } }
-        gen = data.get("generator", {}) if isinstance(data, dict) else {}
-        # Only allow known keys
-        allowed = {
-            "account_holder_distribution",
-            "beneficial_owner_distribution",
-            "legal_entity_probability",
-            "beneficiary_legal_entity_probability",
-            "economically_active_probability",
-            "wid_feature_distribution",
-            "person_reuse_distribution",
-        }
-        return {k: v for k, v in gen.items() if k in allowed}
-    except Exception:
-        return {}
-
-
-def _default_config_content() -> dict:
-    """Return the default configuration content with descriptions."""
-    return {
-        "_descriptions": {
-            "legal_entity_probability": "Wahrscheinlichkeit, dass der Kontoinhaber eine juristische Person (Firma) ist (0..1).",
-            "beneficiary_legal_entity_probability": "Wahrscheinlichkeit, dass ein wirtschaftlich Berechtigter eine juristische Person ist (derzeit 0).",
-            "economically_active_probability": "Wahrscheinlichkeit, dass natürliche Personen wirtschaftlich tätig sind (0..1).",
-            "account_holder_distribution": "Verteilung der Anzahl der Kontoinhaber als Liste von [max_anzahl, wahrscheinlichkeit], Summe = 1.0.",
-            "beneficial_owner_distribution": "Verteilung der Anzahl wirtschaftlich Berechtigter als Liste von [max_anzahl, wahrscheinlichkeit], Summe = 1.0.",
-            "wid_feature_distribution": "Verteilung des WID Unterscheidungsmerkmals (nur für natürliche Personen) als Liste von [max_wert, wahrscheinlichkeit].",
-            "person_reuse_distribution": "Verteilung zur Wiederverwendung von Personen (wie oft dieselbe Person in Datensätzen vorkommt) als Liste von [max_anzahl, wahrscheinlichkeit].",
-        },
-        "generator": {
-            "account_holder_distribution": [
-                [1, 0.70],
-                [2, 0.15],
-                [10, 0.14],
-                [100, 0.009],
-                [1000, 0.001],
-            ],
-            "beneficial_owner_distribution": [
-                [0, 0.70],
-                [1, 0.20],
-                [2, 0.05],
-                [10, 0.04],
-                [50, 0.009],
-                [1000, 0.001],
-            ],
-            "legal_entity_probability": 0.05,
-            "beneficiary_legal_entity_probability": 0.0,
-            "economically_active_probability": 0.20,
-            "wid_feature_distribution": [
-                [1, 0.80],
-                [10, 0.15],
-                [100, 0.04],
-                [99999, 0.01],
-            ],
-            "person_reuse_distribution": [
-                [1, 0.8],
-                [2, 0.1],
-                [5, 0.05],
-                [15, 0.03],
-                [50, 0.019],
-                [200, 0.001],
-            ],
-        },
-    }
-
-
-def _write_default_config_file(target: Optional[Path] = None) -> Path:
-    """Create the default config file at target or default path, returning the path."""
-    path = target or _default_config_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    content = _default_config_content()
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(content, f, ensure_ascii=False, indent=2)
-    return path
 
 
 class OutputFormatter:
@@ -597,7 +490,7 @@ class ColoredHelpCommand(click.Command):
         return "\n".join(colored_lines)
 
 
-@click.command(cls=ColoredHelpCommand)
+@click.command()
 @click.argument(
     "data_file", type=click.Path(exists=True, path_type=Path), required=False
 )
@@ -665,17 +558,18 @@ class ColoredHelpCommand(click.Command):
     is_flag=True,
     help="Disable checking for newer versions online (rely only on cache age)",
 )
-@click.option(
+@optgroup.group("Filter")
+@optgroup.option(
     "--filter-bank-name",
     type=str,
     help="Regex to filter by bank name (case-insensitive)",
 )
-@click.option(
+@optgroup.option(
     "--filter-bic",
     type=str,
     help="Regex to filter by BIC (case-insensitive)",
 )
-@click.option(
+@optgroup.option(
     "--filter-blz",
     type=str,
     help="Regex to filter by BLZ/Bankleitzahl",
@@ -720,18 +614,24 @@ class ColoredHelpCommand(click.Command):
     default=0.20,
     help="Probability of natural persons being economically active (default: 0.20 = 20%)",
 )
-@optgroup.group("WID Features Distribution")
+@optgroup.group("WID Unterscheidungsmerkmal (natürliche Personen)")
+@optgroup.option(
+    "--wid-feature-00000-prob",
+    type=float,
+    default=0.70,
+    help="Wahrscheinlichkeit für kein Unterscheidungsmerkmal 00000 (Standard: 0.70 = 70%)",
+)
 @optgroup.option(
     "--wid-feature-00001-prob",
     type=float,
-    default=0.80,
-    help="Probability of WID feature 00001 (default: 0.80 = 80%)",
+    default=0.10,
+    help="Wahrscheinlichkeit für Unterscheidungsmerkmal 00001 (Standard: 0.10 = 10%)",
 )
 @optgroup.option(
     "--wid-feature-00002-00010-prob",
     type=float,
-    default=0.15,
-    help="Probability of WID feature 00002-00010 (default: 0.15 = 15%)",
+    default=0.099,
+    help="Wahrscheinlichkeit für Unterscheidungsmerkmal im Bereich 00002–00010 (Standard: 0.099 = 9.9%)",
 )
 @optgroup.group("Person Reuse Distribution")
 @optgroup.option(
@@ -773,6 +673,7 @@ def main(
     beneficial_owner_zero_prob: float,
     beneficial_owner_one_prob: float,
     economically_active_prob: float,
+    wid_feature_00000_prob: float,
     wid_feature_00001_prob: float,
     wid_feature_00002_00010_prob: float,
     person_reuse_single_prob: float,
@@ -792,19 +693,19 @@ def main(
     Supports CSV, TXT, and XML input file formats.
 
     Examples:
-      # Use automatically downloaded data
-      gen-ibans --count 5
-      gen-ibans --count 10 --download-format xml
+      # Use automatically downloaded data (subcommand: gen)
+      gen-ibans gen --count 5
+      gen-ibans gen --count 10 --download-format xml
 
       # Use local data file
-      gen-ibans data/blz-aktuell-csv-data.csv --count 5
-      gen-ibans data/blz-aktuell-csv-data.csv --count 5 --format json
-      gen-ibans data/blz-aktuell-csv-data.csv --count 5 --format txt --output ibans.txt
-      gen-ibans data/blz-aktuell-csv-data.csv --count 5 --format csv --output ibans.csv --no-echo
-      gen-ibans data/blz-aktuell-xml-data.xml --count 100 --format json --output ibans.json
+      gen-ibans gen data/blz-aktuell-csv-data.csv --count 5
+      gen-ibans gen data/blz-aktuell-csv-data.csv --count 5 --format json
+      gen-ibans gen data/blz-aktuell-csv-data.csv --count 5 --format txt --output ibans.txt
+      gen-ibans gen data/blz-aktuell-csv-data.csv --count 5 --format csv --output ibans.csv --no-echo
+      gen-ibans gen data/blz-aktuell-xml-data.xml --count 100 --format json --output ibans.json
 
       # Force re-download of data
-      gen-ibans --count 5 --force-download
+      gen-ibans gen --count 5 --force-download
     """
 
     # Merge additional defaults from config file (CLI and downloader) if not provided on CLI
@@ -878,11 +779,36 @@ def main(
             beneficial_owner_zero_prob=beneficial_owner_zero_prob,
             beneficial_owner_one_prob=beneficial_owner_one_prob,
             economically_active_prob=economically_active_prob,
+            wid_feature_00000_prob=wid_feature_00000_prob,
             wid_feature_00001_prob=wid_feature_00001_prob,
             wid_feature_00002_00010_prob=wid_feature_00002_00010_prob,
             person_reuse_single_prob=person_reuse_single_prob,
             person_reuse_two_prob=person_reuse_two_prob,
         )
+
+        # Hinweis zur Sichtbarkeit des Unterscheidungsmerkmals
+        if not clean:
+            try:
+                le_prob = config.legal_entity_probability
+                econ_prob = config.economically_active_probability
+                if le_prob > 0.0 or econ_prob < 1.0:
+                    hint_parts = []
+                    if le_prob > 0.0:
+                        hint_parts.append(
+                            f"ein Teil ({le_prob * 100:.0f}%) der Datensätze sind juristische Personen ohne Unterscheidungsmerkmal"
+                        )
+                    if econ_prob < 1.0:
+                        hint_parts.append(
+                            f"ein Teil ({(1.0 - econ_prob) * 100:.0f}%) der natürlichen Personen ist nicht wirtschaftlich tätig (ohne WID)"
+                        )
+                    msg = (
+                        "Hinweis: "
+                        + "; ".join(hint_parts)
+                        + ". Für 100% Unterscheidungsmerkmal ggf. --legal-entity-probability 0.0 und --economically-active-prob 1.0 setzen."
+                    )
+                    click.echo(style(msg, fg="yellow"), err=True)
+            except Exception:
+                pass
 
         # Initialize IBAN generator
         if not clean:
@@ -1318,15 +1244,17 @@ def _compose_beneficial_owner_distribution(zero: float, one: float):
     ]
 
 
-def _compose_wid_feature_distribution(p00001: float, p00002_00010: float):
-    wf_remaining = 1.0 - p00001 - p00002_00010
-    wf_00011_00100_prob = wf_remaining * 0.8
-    wf_00101_99999_prob = wf_remaining * 0.2
+def _compose_wid_feature_distribution(
+    p00000: float, p00001: float, p00002_00010: float
+):
+    # Clamp/normalize will be handled by caller; here we just compute remainder
+    total = p00000 + p00001 + p00002_00010
+    p_ge_00011 = max(0.0, 1.0 - total)
     return [
+        (0, p00000),
         (1, p00001),
         (10, p00002_00010),
-        (100, wf_00011_00100_prob),
-        (99999, wf_00101_99999_prob),
+        (99999, p_ge_00011),
     ]
 
 
@@ -1353,6 +1281,7 @@ def _build_generator_config(
     beneficial_owner_zero_prob: float,
     beneficial_owner_one_prob: float,
     economically_active_prob: float,
+    wid_feature_00000_prob: float,
     wid_feature_00001_prob: float,
     wid_feature_00002_00010_prob: float,
     person_reuse_single_prob: float,
@@ -1395,10 +1324,44 @@ def _build_generator_config(
 
     if any(
         p in provided_params
-        for p in ("wid_feature_00001_prob", "wid_feature_00002_00010_prob")
+        for p in (
+            "wid_feature_00000_prob",
+            "wid_feature_00001_prob",
+            "wid_feature_00002_00010_prob",
+        )
     ):
+        # Use current config values for unspecified params to avoid mixing with CLI defaults
+        current_dist = getattr(
+            config,
+            "wid_feature_distribution",
+            [(0, 0.70), (1, 0.10), (10, 0.099), (99999, 0.001)],
+        )
+        current_map = {k: v for k, v in current_dist}
+        p0_provided = "wid_feature_00000_prob" in provided_params
+        p1_provided = "wid_feature_00001_prob" in provided_params
+        p2_provided = "wid_feature_00002_00010_prob" in provided_params
+        p0 = wid_feature_00000_prob if p0_provided else current_map.get(0, 0.70)
+        p1 = wid_feature_00001_prob if p1_provided else current_map.get(1, 0.10)
+        p2 = wid_feature_00002_00010_prob if p2_provided else current_map.get(10, 0.099)
+        # If the sum exceeds 1.0, normalize proportionally only among the provided values
+        total = p0 + p1 + p2
+        if total > 1.0:
+            # Determine which were explicitly provided to preserve user intent
+            provided_flags = [p0_provided, p1_provided, p2_provided]
+            vals = [p0, p1, p2]
+            if any(provided_flags):
+                # Normalize only the provided subset, keep unspecified from current_map but cap final sum at 1.0
+                norm_sum = sum(v for v, f in zip(vals, provided_flags) if f)
+                if norm_sum > 0:
+                    scaled = [
+                        (v / norm_sum) if f else v for v, f in zip(vals, provided_flags)
+                    ]
+                    p0, p1, p2 = scaled
+            else:
+                # All came from defaults; normalize all
+                p0, p1, p2 = (p0 / total, p1 / total, p2 / total)
         config_kwargs["wid_feature_distribution"] = _compose_wid_feature_distribution(
-            wid_feature_00001_prob, wid_feature_00002_00010_prob
+            p0, p1, p2
         )
 
     if any(
