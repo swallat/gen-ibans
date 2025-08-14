@@ -17,6 +17,7 @@ A powerful tool for generating valid German IBANs using real Bundesbank data wit
   - [Command Line Interface](#command-line-interface)
   - [Output Formats](#output-formats)
   - [Output Control Options](#output-control-options)
+  - [Bank Filter Options](#bank-filter-options)
   - [Advanced Options](#advanced-options)
   - [CLI Parameters Reference](#cli-parameters-reference)
   - [Python Module Usage](#python-module-usage)
@@ -54,6 +55,8 @@ A powerful tool for generating valid German IBANs using real Bundesbank data wit
 - ✅ **Automatic Data Download**: Fetches latest Bundesbank data automatically with smart caching
 - ✅ **Version Checking**: Automatically detects and downloads newer data versions
 - ✅ **Comprehensive CLI**: Full-featured command-line interface with extensive options
+- ✅ **Bank Filtering**: Regex-based filters for bank name, BIC, and BLZ (configurable via CLI or config file)
+- ✅ **Colorized Help**: Enhanced, colorized CLI help with optional --no-color
 - ✅ **Personal Data**: Includes realistic German names and addresses using Faker
 
 ## Installation
@@ -156,6 +159,34 @@ gen-ibans gen --count 5 --no-bank-info
 gen-ibans gen --count 5 --clean
 ```
 
+### Bank Filter Options
+
+Use powerful regex filters to constrain which banks are used for IBAN generation.
+
+```bash
+# Filter by bank name (case-insensitive regex)
+# Matches names containing "Sparkasse" or "Volksbank"
+gen-ibans gen --count 5 --filter-bank-name "(Sparkasse|Volksbank)"
+
+# Filter by BIC (case-insensitive regex)
+# Example: all BICs starting with DEUTDEFF
+gen-ibans gen --count 5 --filter-bic "DEUTDEFF.*"
+
+# Filter by BLZ (Bankleitzahl) using regex (case-sensitive)
+# Exact match example for 37040044
+gen-ibans gen --count 5 --filter-blz "^37040044$"
+
+# Combine multiple filters (banks must match ALL provided filters)
+gen-ibans gen --count 5 --filter-bank-name "bundesbank" --filter-bic "markdeff.*"
+```
+
+Notes:
+- filter-bank-name and filter-bic are matched with case-insensitive regex (re.IGNORECASE).
+- filter-blz uses a case-sensitive regex (exact digits), so use anchors for exact matching.
+- If no banks match the filters, the command fails with an error.
+- Invalid regex patterns will raise an error with a helpful message.
+- Filters can also be set in config.toml under the [cli] section.
+
 ### Advanced Options
 
 ```bash
@@ -164,6 +195,9 @@ gen-ibans gen --count 5 --cache-dir /path/to/cache
 
 # Use specific seed for reproducible results
 gen-ibans gen --count 10 --seed 42
+
+# Disable colored output
+gen-ibans gen --count 5 --no-color
 
 # Multiple format example with all options
 gen-ibans gen --count 20 --seed 12345 --format json --output detailed.json --download-format xml --clean
@@ -183,10 +217,14 @@ gen-ibans gen --count 20 --seed 12345 --format json --output detailed.json --dow
 | `--no-personal-info` | Exclude personal information | *false* |
 | `--no-bank-info` | Exclude bank information | *false* |
 | `--clean` | Suppress informational messages | *false* |
+| `--no-color` | Disable colored output (plain help/output) | *false* |
 | `--download-format` | Format for auto-download: csv, txt, xml | csv |
 | `--force-download` | Force fresh download | *false* |
 | `--cache-dir` | Custom cache directory | *system temp* |
 | `--no-version-check` | Disable online version checking | *false* |
+| `--filter-bank-name` | Case-insensitive regex filter for bank name | — |
+| `--filter-bic` | Case-insensitive regex filter for BIC | — |
+| `--filter-blz` | Regex filter for BLZ (case-sensitive) | — |
 
 ### Konfiguration per Datei
 
@@ -607,10 +645,10 @@ To create a new release of this project:
 1. **Create and push a version tag**:
    ```bash
    # Create a new tag for the next release (don’t run until after merge into master/main)
-   # Next planned release: v2.0.0
+   # Next planned release: v2.1.0
    # When ready:
-   # git tag v2.0.0
-   # git push origin v2.0.0
+   # git tag v2.1.0
+   # git push origin v2.1.0
    ```
 
 2. **Automatic process**: Once you push a tag starting with `v*`, GitHub Actions will automatically:

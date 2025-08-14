@@ -665,6 +665,21 @@ class ColoredHelpCommand(click.Command):
     is_flag=True,
     help="Disable checking for newer versions online (rely only on cache age)",
 )
+@click.option(
+    "--filter-bank-name",
+    type=str,
+    help="Regex to filter by bank name (case-insensitive)",
+)
+@click.option(
+    "--filter-bic",
+    type=str,
+    help="Regex to filter by BIC (case-insensitive)",
+)
+@click.option(
+    "--filter-blz",
+    type=str,
+    help="Regex to filter by BLZ/Bankleitzahl",
+)
 @optgroup.group("Entity Type Configuration")
 @optgroup.option(
     "--legal-entity-probability",
@@ -749,6 +764,9 @@ def main(
     force_download: bool,
     cache_dir: Optional[Path],
     no_version_check: bool,
+    filter_bank_name: Optional[str],
+    filter_bic: Optional[str],
+    filter_blz: Optional[str],
     legal_entity_probability: float,
     account_holder_single_prob: float,
     account_holder_two_prob: float,
@@ -790,75 +808,44 @@ def main(
     """
 
     # Merge additional defaults from config file (CLI and downloader) if not provided on CLI
-    try:
-        provided_params = {
-            param
-            for param in ctx.params.keys()
-            if ctx.get_parameter_source(param) != click.core.ParameterSource.DEFAULT
-        }
-        full_cfg = load_full_config()
-        cli_cfg = full_cfg.get("cli", {}) or {}
-        dl_cfg = full_cfg.get("downloader", {}) or {}
-        # Downloader-related defaults
-        if "download_format" not in provided_params and isinstance(
-            dl_cfg.get("download_format"), str
-        ):
-            download_format = dl_cfg["download_format"]
-        if "force_download" not in provided_params and isinstance(
-            dl_cfg.get("force_download"), bool
-        ):
-            force_download = dl_cfg["force_download"]
-        if "cache_dir" not in provided_params and dl_cfg.get("cache_dir"):
-            try:
-                cache_dir = (
-                    Path(dl_cfg["cache_dir"]) if dl_cfg.get("cache_dir") else cache_dir
-                )
-            except Exception:
-                pass
-        if "no_version_check" not in provided_params and isinstance(
-            dl_cfg.get("no_version_check"), bool
-        ):
-            no_version_check = dl_cfg["no_version_check"]
-        # CLI-related defaults
-        if "seed" not in provided_params and cli_cfg.get("seed") is not None:
-            try:
-                seed = int(cli_cfg["seed"])  # type: ignore
-            except Exception:
-                pass
-        if "count" not in provided_params and isinstance(cli_cfg.get("count"), int):
-            count = cli_cfg["count"]
-        if "output_format" not in provided_params and cli_cfg.get("output_format"):
-            output_format = cli_cfg.get("output_format")
-        if "output" not in provided_params and cli_cfg.get("output"):
-            try:
-                output = Path(cli_cfg["output"])  # type: ignore
-            except Exception:
-                pass
-        if "no_echo" not in provided_params and isinstance(
-            cli_cfg.get("no_echo"), bool
-        ):
-            no_echo = cli_cfg["no_echo"]
-        if "iban_only" not in provided_params and isinstance(
-            cli_cfg.get("iban_only"), bool
-        ):
-            iban_only = cli_cfg["iban_only"]
-        if "no_personal_info" not in provided_params and isinstance(
-            cli_cfg.get("no_personal_info"), bool
-        ):
-            no_personal_info = cli_cfg["no_personal_info"]
-        if "no_bank_info" not in provided_params and isinstance(
-            cli_cfg.get("no_bank_info"), bool
-        ):
-            no_bank_info = cli_cfg["no_bank_info"]
-        if "clean" not in provided_params and isinstance(cli_cfg.get("clean"), bool):
-            clean = cli_cfg["clean"]
-        if "no_color" not in provided_params and isinstance(
-            cli_cfg.get("no_color"), bool
-        ):
-            no_color = cli_cfg["no_color"]
-    except Exception:
-        # Ignore config merge failures for non-generator settings
-        pass
+    merged = _merge_defaults(
+        ctx,
+        download_format=download_format,
+        force_download=force_download,
+        cache_dir=cache_dir,
+        no_version_check=no_version_check,
+        seed=seed,
+        count=count,
+        output_format=output_format,
+        output=output,
+        no_echo=no_echo,
+        iban_only=iban_only,
+        no_personal_info=no_personal_info,
+        no_bank_info=no_bank_info,
+        clean=clean,
+        no_color=no_color,
+        filter_bank_name=filter_bank_name,
+        filter_bic=filter_bic,
+        filter_blz=filter_blz,
+    )
+    download_format = merged["download_format"]
+    force_download = merged["force_download"]
+    cache_dir = merged["cache_dir"]
+    no_version_check = merged["no_version_check"]
+    seed = merged["seed"]
+    count = merged["count"]
+    output_format = merged["output_format"]
+    output = merged["output"]
+    no_echo = merged["no_echo"]
+    iban_only = merged["iban_only"]
+    no_personal_info = merged["no_personal_info"]
+    no_bank_info = merged["no_bank_info"]
+    clean = merged["clean"]
+    no_color = merged["no_color"]
+    # Apply filters from config if not provided on CLI
+    filter_bank_name = merged.get("filter_bank_name", filter_bank_name)
+    filter_bic = merged.get("filter_bic", filter_bic)
+    filter_blz = merged.get("filter_blz", filter_blz)
 
     # Determine whether to enable colored output for CLI messages (stderr/info)
     enable_color = sys.stderr.isatty() and not no_color and not clean
@@ -871,151 +858,31 @@ def main(
         raise click.BadParameter("Count must be a positive integer")
 
     try:
-        # Determine data file to use
-        if data_file is None:
-            # Download data from Bundesbank
-            if not clean:
-                click.echo(
-                    style(
-                        f"No data file provided, downloading from Bundesbank ({download_format} format)...",
-                        fg="yellow",
-                    ),
-                    err=True,
-                )
+        # Determine data file to use (download if necessary)
+        data_file_path = _determine_data_file_path(
+            data_file=data_file,
+            download_format=download_format,
+            force_download=force_download,
+            cache_dir=cache_dir,
+            no_version_check=no_version_check,
+            clean=clean,
+            style=style,
+        )
 
-            downloader = BundesbankDownloader(
-                cache_dir=str(cache_dir) if cache_dir else None
-            )
-            try:
-                data_file_path = downloader.get_data_file(
-                    format_type=download_format,
-                    force_download=force_download,
-                    check_version=not no_version_check,
-                )
-                if not clean:
-                    click.echo(
-                        style(
-                            f"Downloaded data cached at: {data_file_path}", fg="cyan"
-                        ),
-                        err=True,
-                    )
-            except Exception as e:
-                raise click.ClickException(f"Failed to download Bundesbank data: {e}")
-        else:
-            data_file_path = str(data_file)
-
-        # Build configuration from (in order of precedence):
-        # 1) Explicit CLI options (highest)
-        # 2) Config file values (if present)
-        # 3) Library defaults (fallback)
-        config_file_values = load_config_from_file()
-
-        # Start with defaults
-        config = GeneratorConfig()
-
-        # Apply config file values (lists may be lists of lists; convert to tuples)
-        def _convert_pairs(value):
-            if isinstance(value, list):
-                return [
-                    (int(p[0]), float(p[1]))
-                    for p in value
-                    if isinstance(p, (list, tuple)) and len(p) == 2
-                ]
-            return value
-
-        for key, val in config_file_values.items():
-            if key in {
-                "account_holder_distribution",
-                "beneficial_owner_distribution",
-                "wid_feature_distribution",
-                "person_reuse_distribution",
-            }:
-                val = _convert_pairs(val)
-            try:
-                setattr(config, key, val)
-            except Exception:
-                pass
-
-        # Now apply explicit CLI overrides
-        config_kwargs = {}
-        provided_params = {
-            param
-            for param in ctx.params.keys()
-            if ctx.get_parameter_source(param) != click.core.ParameterSource.DEFAULT
-        }
-
-        if "legal_entity_probability" in provided_params:
-            config_kwargs["legal_entity_probability"] = legal_entity_probability
-        if "economically_active_prob" in provided_params:
-            config_kwargs["economically_active_probability"] = economically_active_prob
-
-        if any(
-            param in provided_params
-            for param in ["account_holder_single_prob", "account_holder_two_prob"]
-        ):
-            ah_remaining = 1.0 - account_holder_single_prob - account_holder_two_prob
-            ah_ten_prob = ah_remaining * 0.933
-            ah_hundred_prob = ah_remaining * 0.06
-            ah_thousand_prob = ah_remaining * 0.007
-            config_kwargs["account_holder_distribution"] = [
-                (1, account_holder_single_prob),
-                (2, account_holder_two_prob),
-                (10, ah_ten_prob),
-                (100, ah_hundred_prob),
-                (1000, ah_thousand_prob),
-            ]
-
-        if any(
-            param in provided_params
-            for param in ["beneficial_owner_zero_prob", "beneficial_owner_one_prob"]
-        ):
-            bo_remaining = 1.0 - beneficial_owner_zero_prob - beneficial_owner_one_prob
-            bo_two_prob = bo_remaining * 0.5
-            bo_ten_prob = bo_remaining * 0.4
-            bo_fifty_prob = bo_remaining * 0.09
-            bo_thousand_prob = bo_remaining * 0.01
-            config_kwargs["beneficial_owner_distribution"] = [
-                (0, beneficial_owner_zero_prob),
-                (1, beneficial_owner_one_prob),
-                (2, bo_two_prob),
-                (10, bo_ten_prob),
-                (50, bo_fifty_prob),
-                (1000, bo_thousand_prob),
-            ]
-
-        if any(
-            param in provided_params
-            for param in ["wid_feature_00001_prob", "wid_feature_00002_00010_prob"]
-        ):
-            wf_remaining = 1.0 - wid_feature_00001_prob - wid_feature_00002_00010_prob
-            wf_00011_00100_prob = wf_remaining * 0.8
-            wf_00101_99999_prob = wf_remaining * 0.2
-            config_kwargs["wid_feature_distribution"] = [
-                (1, wid_feature_00001_prob),
-                (10, wid_feature_00002_00010_prob),
-                (100, wf_00011_00100_prob),
-                (99999, wf_00101_99999_prob),
-            ]
-
-        if any(
-            param in provided_params
-            for param in ["person_reuse_single_prob", "person_reuse_two_prob"]
-        ):
-            pr_remaining = 1.0 - person_reuse_single_prob - person_reuse_two_prob
-            pr_ten_prob = pr_remaining * 0.933
-            pr_hundred_prob = pr_remaining * 0.06
-            pr_thousand_prob = pr_remaining * 0.007
-            config_kwargs["person_reuse_distribution"] = [
-                (1, person_reuse_single_prob),
-                (2, person_reuse_two_prob),
-                (10, pr_ten_prob),
-                (100, pr_hundred_prob),
-                (1000, pr_thousand_prob),
-            ]
-
-        # Apply CLI overrides on top of possibly file-adjusted config
-        for key, val in config_kwargs.items():
-            setattr(config, key, val)
+        # Build configuration from CLI + config file + defaults
+        config = _build_generator_config(
+            ctx,
+            legal_entity_probability=legal_entity_probability,
+            account_holder_single_prob=account_holder_single_prob,
+            account_holder_two_prob=account_holder_two_prob,
+            beneficial_owner_zero_prob=beneficial_owner_zero_prob,
+            beneficial_owner_one_prob=beneficial_owner_one_prob,
+            economically_active_prob=economically_active_prob,
+            wid_feature_00001_prob=wid_feature_00001_prob,
+            wid_feature_00002_00010_prob=wid_feature_00002_00010_prob,
+            person_reuse_single_prob=person_reuse_single_prob,
+            person_reuse_two_prob=person_reuse_two_prob,
+        )
 
         # Initialize IBAN generator
         if not clean:
@@ -1023,6 +890,15 @@ def main(
                 style(f"Loading bank data from: {data_file_path}", fg="cyan"), err=True
             )
         generator = IBANGenerator(data_file_path, seed, config)
+
+        # Apply optional regex filters on bank list
+        _apply_bank_filters(
+            generator,
+            filter_bank_name=filter_bank_name,
+            filter_bic=filter_bic,
+            filter_blz=filter_blz,
+        )
+
         if not clean:
             click.echo(
                 style(f"Loaded {generator.get_bank_count()} banks", fg="green"),
@@ -1035,9 +911,6 @@ def main(
             click.echo(style(f"Generating {count} IBANs...", fg="cyan"), err=True)
         ibans = generator.generate_ibans(count)
 
-        # Format and output results
-        formatter = OutputFormatter()
-
         # Determine what information to include
         include_personal_info = not (no_personal_info or iban_only)
         include_bank_info = not (no_bank_info or iban_only)
@@ -1045,302 +918,21 @@ def main(
         # Always output to stdout unless --no-echo is specified and --output is given
         output_to_stdout = not (no_echo and output)
 
+        # Output results to stdout (all formats) or files
         if output_to_stdout:
-            if output_format:
-                # Output in specified format to stdout
-                if output_format == "txt":
-                    # For txt format to stdout, use the same logic as format_txt but print to stdout
-                    for record in ibans:
-                        # Format account holders
-                        holders_str = []
-                        for holder in record.account_holders:
-                            if isinstance(holder, LegalEntity):
-                                holders_str.append(
-                                    f"{holder.name} (Legal Entity, WID: {holder.wid}), Address: {holder.full_address}"
-                                )
-                            else:
-                                ids_str = f"Tax-ID: {holder.tax_id}"
-                                if holder.wid:
-                                    ids_str += f", WID: {holder.wid}"
-                                holders_str.append(f"{holder.full_name} ({ids_str})")
-                        holders_display = "; ".join(holders_str)
+            _output_results_stdout(
+                ibans,
+                output_format=output_format,
+                include_bank_info=include_bank_info,
+                include_personal_info=include_personal_info,
+            )
 
-                        # Format beneficiaries
-                        beneficiaries_str = []
-                        for beneficiary in record.beneficiaries:
-                            if isinstance(beneficiary, LegalEntity):
-                                beneficiaries_str.append(
-                                    f"{beneficiary.name} (Legal Entity, WID: {beneficiary.wid}), Address: {beneficiary.full_address}"
-                                )
-                            else:
-                                ids_str = f"Tax-ID: {beneficiary.tax_id}"
-                                if beneficiary.wid:
-                                    ids_str += f", WID: {beneficiary.wid}"
-                                beneficiaries_str.append(
-                                    f"{beneficiary.full_name} ({ids_str})"
-                                )
-                        beneficiaries_display = (
-                            "; ".join(beneficiaries_str)
-                            if beneficiaries_str
-                            else "None"
-                        )
-
-                        if include_personal_info and include_bank_info:
-                            print(
-                                f"{record.iban} | Holders: {holders_display} | Beneficiaries: {beneficiaries_display} | {record.bank.name} | {record.bank.bic} | {record.bank.bankleitzahl}"
-                            )
-                        elif include_personal_info:
-                            print(
-                                f"{record.iban} | Holders: {holders_display} | Beneficiaries: {beneficiaries_display}"
-                            )
-                        elif include_bank_info:
-                            print(
-                                f"{record.iban} | {record.bank.name} | {record.bank.bic} | {record.bank.bankleitzahl}"
-                            )
-                        else:
-                            print(record.iban)
-                elif output_format == "csv":
-                    # Output CSV format to stdout
-                    print(
-                        "IBAN,Account Holders,Beneficial Owners,Bank Name,BIC,Bank Code"
-                    )
-                    for record in ibans:
-                        # Format account holders
-                        holders_str = []
-                        for holder in record.account_holders:
-                            if isinstance(holder, LegalEntity):
-                                holders_str.append(
-                                    f"{holder.name} (Legal Entity, WID: {holder.wid}), Address: {holder.full_address}"
-                                )
-                            else:
-                                ids_str = f"Tax-ID: {holder.tax_id}"
-                                if holder.wid:
-                                    ids_str += f", WID: {holder.wid}"
-                                holders_str.append(f"{holder.full_name} ({ids_str})")
-                        holders_csv = "; ".join(holders_str)
-
-                        # Format beneficiaries
-                        beneficiaries_str = []
-                        for beneficiary in record.beneficiaries:
-                            if isinstance(beneficiary, LegalEntity):
-                                beneficiaries_str.append(
-                                    f"{beneficiary.name} (Legal Entity, WID: {beneficiary.wid}), Address: {beneficiary.full_address}"
-                                )
-                            else:
-                                ids_str = f"Tax-ID: {beneficiary.tax_id}"
-                                if beneficiary.wid:
-                                    ids_str += f", WID: {beneficiary.wid}"
-                                beneficiaries_str.append(
-                                    f"{beneficiary.full_name} ({ids_str})"
-                                )
-                        beneficiaries_csv = (
-                            "; ".join(beneficiaries_str)
-                            if beneficiaries_str
-                            else "None"
-                        )
-
-                        print(
-                            f'"{record.iban}","{holders_csv}","{beneficiaries_csv}","{record.bank.name}","{record.bank.bic}","{record.bank.bankleitzahl}"'
-                        )
-                elif output_format == "xml":
-                    # Output XML format to stdout
-                    import xml.dom.minidom
-
-                    root = ET.Element("accounts")
-                    for record in ibans:
-                        iban_elem = ET.SubElement(root, "account")
-                        ET.SubElement(iban_elem, "iban").text = record.iban
-
-                        # Account holders
-                        holders_elem = ET.SubElement(iban_elem, "account_holders")
-                        for holder in record.account_holders:
-                            holder_elem = ET.SubElement(holders_elem, "holder")
-                            if isinstance(holder, LegalEntity):
-                                ET.SubElement(holder_elem, "type").text = "legal_entity"
-                                ET.SubElement(holder_elem, "name").text = holder.name
-                                ET.SubElement(holder_elem, "wid").text = holder.wid
-                                ET.SubElement(
-                                    holder_elem, "street_address"
-                                ).text = holder.street_address
-                                ET.SubElement(holder_elem, "city").text = holder.city
-                                ET.SubElement(
-                                    holder_elem, "postal_code"
-                                ).text = holder.postal_code
-                            else:
-                                ET.SubElement(
-                                    holder_elem, "type"
-                                ).text = "natural_person"
-                                ET.SubElement(
-                                    holder_elem, "first_name"
-                                ).text = holder.first_name
-                                ET.SubElement(
-                                    holder_elem, "last_name"
-                                ).text = holder.last_name
-                                ET.SubElement(holder_elem, "birth_date").text = str(
-                                    holder.birth_date
-                                )
-                                ET.SubElement(
-                                    holder_elem, "tax_id"
-                                ).text = holder.tax_id
-                                if holder.wid:
-                                    ET.SubElement(holder_elem, "wid").text = holder.wid
-                                ET.SubElement(
-                                    holder_elem, "street_address"
-                                ).text = holder.street_address
-                                ET.SubElement(holder_elem, "city").text = holder.city
-                                ET.SubElement(
-                                    holder_elem, "postal_code"
-                                ).text = holder.postal_code
-
-                        # Beneficiaries
-                        beneficiaries_elem = ET.SubElement(iban_elem, "beneficiaries")
-                        for beneficiary in record.beneficiaries:
-                            beneficiary_elem = ET.SubElement(
-                                beneficiaries_elem, "beneficiary"
-                            )
-                            if isinstance(beneficiary, LegalEntity):
-                                ET.SubElement(
-                                    beneficiary_elem, "type"
-                                ).text = "legal_entity"
-                                ET.SubElement(
-                                    beneficiary_elem, "name"
-                                ).text = beneficiary.name
-                                ET.SubElement(
-                                    beneficiary_elem, "wid"
-                                ).text = beneficiary.wid
-                                ET.SubElement(
-                                    beneficiary_elem, "street_address"
-                                ).text = beneficiary.street_address
-                                ET.SubElement(
-                                    beneficiary_elem, "city"
-                                ).text = beneficiary.city
-                                ET.SubElement(
-                                    beneficiary_elem, "postal_code"
-                                ).text = beneficiary.postal_code
-                            else:
-                                ET.SubElement(
-                                    beneficiary_elem, "type"
-                                ).text = "natural_person"
-                                ET.SubElement(
-                                    beneficiary_elem, "first_name"
-                                ).text = beneficiary.first_name
-                                ET.SubElement(
-                                    beneficiary_elem, "last_name"
-                                ).text = beneficiary.last_name
-                                ET.SubElement(
-                                    beneficiary_elem, "birth_date"
-                                ).text = str(beneficiary.birth_date)
-                                ET.SubElement(
-                                    beneficiary_elem, "tax_id"
-                                ).text = beneficiary.tax_id
-                                if beneficiary.wid:
-                                    ET.SubElement(
-                                        beneficiary_elem, "wid"
-                                    ).text = beneficiary.wid
-                                ET.SubElement(
-                                    beneficiary_elem, "street_address"
-                                ).text = beneficiary.street_address
-                                ET.SubElement(
-                                    beneficiary_elem, "city"
-                                ).text = beneficiary.city
-                                ET.SubElement(
-                                    beneficiary_elem, "postal_code"
-                                ).text = beneficiary.postal_code
-
-                        bank_elem = ET.SubElement(iban_elem, "bank")
-                        ET.SubElement(bank_elem, "name").text = record.bank.name
-                        ET.SubElement(bank_elem, "bic").text = record.bank.bic
-                        ET.SubElement(bank_elem, "code").text = record.bank.bankleitzahl
-                    # Pretty print XML to stdout
-                    rough_string = ET.tostring(root, "utf-8")
-                    reparsed = xml.dom.minidom.parseString(rough_string)
-                    print(reparsed.toprettyxml(indent="  ").split("\n", 1)[1])
-                elif output_format == "json":
-                    # Output JSON format to stdout
-                    data = []
-                    for record in ibans:
-                        # Account holders
-                        holders_data = []
-                        for holder in record.account_holders:
-                            if isinstance(holder, LegalEntity):
-                                holders_data.append(
-                                    {
-                                        "type": "legal_entity",
-                                        "name": holder.name,
-                                        "wid": holder.wid,
-                                        "street_address": holder.street_address,
-                                        "city": holder.city,
-                                        "postal_code": holder.postal_code,
-                                    }
-                                )
-                            else:
-                                holder_data = {
-                                    "type": "natural_person",
-                                    "first_name": holder.first_name,
-                                    "last_name": holder.last_name,
-                                    "birth_date": str(holder.birth_date),
-                                    "tax_id": holder.tax_id,
-                                    "street_address": holder.street_address,
-                                    "city": holder.city,
-                                    "postal_code": holder.postal_code,
-                                }
-                                if holder.wid:
-                                    holder_data["wid"] = holder.wid
-                                holders_data.append(holder_data)
-
-                        # Beneficiaries
-                        beneficiaries_data = []
-                        for beneficiary in record.beneficiaries:
-                            if isinstance(beneficiary, LegalEntity):
-                                beneficiaries_data.append(
-                                    {
-                                        "type": "legal_entity",
-                                        "name": beneficiary.name,
-                                        "wid": beneficiary.wid,
-                                        "street_address": beneficiary.street_address,
-                                        "city": beneficiary.city,
-                                        "postal_code": beneficiary.postal_code,
-                                    }
-                                )
-                            else:
-                                beneficiary_data = {
-                                    "type": "natural_person",
-                                    "first_name": beneficiary.first_name,
-                                    "last_name": beneficiary.last_name,
-                                    "birth_date": str(beneficiary.birth_date),
-                                    "tax_id": beneficiary.tax_id,
-                                    "street_address": beneficiary.street_address,
-                                    "city": beneficiary.city,
-                                    "postal_code": beneficiary.postal_code,
-                                }
-                                if beneficiary.wid:
-                                    beneficiary_data["wid"] = beneficiary.wid
-                                beneficiaries_data.append(beneficiary_data)
-
-                        data.append(
-                            {
-                                "iban": record.iban,
-                                "account_holders": holders_data,
-                                "beneficiaries": beneficiaries_data,
-                                "bank": {
-                                    "name": record.bank.name,
-                                    "bic": record.bank.bic,
-                                    "code": record.bank.bankleitzahl,
-                                },
-                            }
-                        )
-                    print(json.dumps(data, ensure_ascii=False, indent=2))
-            else:
-                # Default plain format (same as old stdout format)
-                formatter.format_stdout(ibans, include_bank_info, include_personal_info)
-
-        # Write to file if --output is specified
         if output:
             if not output_format:
                 raise click.BadParameter(
                     "--format is required when --output is specified"
                 )
-
+            formatter = OutputFormatter()
             if output_format == "txt":
                 formatter.format_txt(
                     ibans, str(output), include_bank_info, include_personal_info, clean
@@ -1445,6 +1037,541 @@ def cli(
 # Register subcommands
 cli.add_command(main, name="gen")
 cli.add_command(init_config, name="init")
+
+
+# Helper functions extracted from main to improve readability
+
+
+def _merge_defaults(
+    ctx: click.Context,
+    *,
+    download_format: str,
+    force_download: bool,
+    cache_dir: Optional[Path],
+    no_version_check: bool,
+    seed: Optional[int],
+    count: int,
+    output_format: Optional[str],
+    output: Optional[Path],
+    no_echo: bool,
+    iban_only: bool,
+    no_personal_info: bool,
+    no_bank_info: bool,
+    clean: bool,
+    no_color: bool,
+    filter_bank_name: Optional[str],
+    filter_bic: Optional[str],
+    filter_blz: Optional[str],
+):
+    """Merge additional defaults from config file (CLI and downloader) if not provided on CLI.
+
+    Returns a dict with possibly updated values.
+    """
+    try:
+        provided_params = {
+            param
+            for param in ctx.params.keys()
+            if ctx.get_parameter_source(param) != click.core.ParameterSource.DEFAULT
+        }
+        full_cfg = load_full_config()
+        cli_cfg = full_cfg.get("cli", {}) or {}
+        dl_cfg = full_cfg.get("downloader", {}) or {}
+        # Downloader-related defaults
+        if "download_format" not in provided_params and isinstance(
+            dl_cfg.get("download_format"), str
+        ):
+            download_format = dl_cfg["download_format"]
+        if "force_download" not in provided_params and isinstance(
+            dl_cfg.get("force_download"), bool
+        ):
+            force_download = dl_cfg["force_download"]
+        if "cache_dir" not in provided_params and dl_cfg.get("cache_dir"):
+            try:
+                cache_dir = (
+                    Path(dl_cfg["cache_dir"]) if dl_cfg.get("cache_dir") else cache_dir
+                )
+            except Exception:
+                pass
+        if "no_version_check" not in provided_params and isinstance(
+            dl_cfg.get("no_version_check"), bool
+        ):
+            no_version_check = dl_cfg["no_version_check"]
+        # CLI-related defaults
+        if "seed" not in provided_params and (cli_cfg.get("seed") is not None):
+            try:
+                seed = int(cli_cfg["seed"])  # type: ignore
+            except Exception:
+                pass
+        if "count" not in provided_params and isinstance(cli_cfg.get("count"), int):
+            count = cli_cfg["count"]
+        if "output_format" not in provided_params and cli_cfg.get("output_format"):
+            output_format = cli_cfg.get("output_format")
+        if "output" not in provided_params and cli_cfg.get("output"):
+            try:
+                output = Path(cli_cfg["output"])  # type: ignore
+            except Exception:
+                pass
+        if "no_echo" not in provided_params and isinstance(
+            cli_cfg.get("no_echo"), bool
+        ):
+            no_echo = cli_cfg["no_echo"]
+        if "iban_only" not in provided_params and isinstance(
+            cli_cfg.get("iban_only"), bool
+        ):
+            iban_only = cli_cfg["iban_only"]
+        if "no_personal_info" not in provided_params and isinstance(
+            cli_cfg.get("no_personal_info"), bool
+        ):
+            no_personal_info = cli_cfg["no_personal_info"]
+        if "no_bank_info" not in provided_params and isinstance(
+            cli_cfg.get("no_bank_info"), bool
+        ):
+            no_bank_info = cli_cfg["no_bank_info"]
+        if "clean" not in provided_params and isinstance(cli_cfg.get("clean"), bool):
+            clean = cli_cfg["clean"]
+        if "no_color" not in provided_params and isinstance(
+            cli_cfg.get("no_color"), bool
+        ):
+            no_color = cli_cfg["no_color"]
+        # Filters: allow from config if not provided on CLI
+        if "filter_bank_name" not in provided_params and cli_cfg.get(
+            "filter_bank_name"
+        ):
+            try:
+                # Empty strings are treated as unset
+                fbn = str(cli_cfg.get("filter_bank_name"))
+                filter_bank_name = fbn if fbn.strip() != "" else None  # type: ignore
+            except Exception:
+                pass
+        if "filter_bic" not in provided_params and cli_cfg.get("filter_bic"):
+            try:
+                fbic = str(cli_cfg.get("filter_bic"))
+                filter_bic = fbic if fbic.strip() != "" else None  # type: ignore
+            except Exception:
+                pass
+        if "filter_blz" not in provided_params and cli_cfg.get("filter_blz"):
+            try:
+                fblz = str(cli_cfg.get("filter_blz"))
+                filter_blz = fblz if fblz.strip() != "" else None  # type: ignore
+            except Exception:
+                pass
+    except Exception:
+        # Ignore config merge failures for non-generator settings
+        pass
+
+    return {
+        "download_format": download_format,
+        "force_download": force_download,
+        "cache_dir": cache_dir,
+        "no_version_check": no_version_check,
+        "seed": seed,
+        "count": count,
+        "output_format": output_format,
+        "output": output,
+        "no_echo": no_echo,
+        "iban_only": iban_only,
+        "no_personal_info": no_personal_info,
+        "no_bank_info": no_bank_info,
+        "clean": clean,
+        "no_color": no_color,
+        "filter_bank_name": locals().get("filter_bank_name"),
+        "filter_bic": locals().get("filter_bic"),
+        "filter_blz": locals().get("filter_blz"),
+    }
+
+
+def _determine_data_file_path(
+    *,
+    data_file: Optional[Path],
+    download_format: str,
+    force_download: bool,
+    cache_dir: Optional[Path],
+    no_version_check: bool,
+    clean: bool,
+    style,
+) -> str:
+    """Determine the data file path, downloading if necessary."""
+    if data_file is None:
+        if not clean:
+            click.echo(
+                style(
+                    f"No data file provided, downloading from Bundesbank ({download_format} format)...",
+                    fg="yellow",
+                ),
+                err=True,
+            )
+        downloader = BundesbankDownloader(
+            cache_dir=str(cache_dir) if cache_dir else None
+        )
+        try:
+            data_file_path = downloader.get_data_file(
+                format_type=download_format,
+                force_download=force_download,
+                check_version=not no_version_check,
+            )
+            if not clean:
+                click.echo(
+                    style(f"Downloaded data cached at: {data_file_path}", fg="cyan"),
+                    err=True,
+                )
+        except Exception as e:
+            raise click.ClickException(f"Failed to download Bundesbank data: {e}")
+    else:
+        data_file_path = str(data_file)
+    return data_file_path
+
+
+def _apply_bank_filters(
+    generator: IBANGenerator,
+    *,
+    filter_bank_name: Optional[str],
+    filter_bic: Optional[str],
+    filter_blz: Optional[str],
+) -> None:
+    """Apply optional regex filters to the generator's bank list."""
+    try:
+        import re as _re
+
+        filtered_banks = generator.banks
+        if filter_bank_name:
+            pat_name = _re.compile(filter_bank_name, _re.IGNORECASE)
+            filtered_banks = [
+                b for b in filtered_banks if pat_name.search(b.name or "")
+            ]
+        if filter_bic:
+            pat_bic = _re.compile(filter_bic, _re.IGNORECASE)
+            filtered_banks = [b for b in filtered_banks if pat_bic.search(b.bic or "")]
+        if filter_blz:
+            pat_blz = _re.compile(filter_blz)
+            filtered_banks = [
+                b for b in filtered_banks if pat_blz.search(b.bankleitzahl or "")
+            ]
+        if (filter_bank_name or filter_bic or filter_blz) is not None:
+            generator.banks = filtered_banks
+            if not generator.banks:
+                raise click.ClickException("No banks match the provided filter(s).")
+    except Exception as e:
+        raise click.ClickException(f"Invalid filter regex provided: {e}")
+
+
+def _get_provided_params(ctx: click.Context) -> set:
+    return {
+        param
+        for param in ctx.params.keys()
+        if ctx.get_parameter_source(param) != click.core.ParameterSource.DEFAULT
+    }
+
+
+def _convert_pairs_list(value):
+    if isinstance(value, list):
+        return [
+            (int(p[0]), float(p[1]))
+            for p in value
+            if isinstance(p, (list, tuple)) and len(p) == 2
+        ]
+    return value
+
+
+def _apply_config_file_values(config: GeneratorConfig, values: dict) -> None:
+    for key, val in values.items():
+        if key in {
+            "account_holder_distribution",
+            "beneficial_owner_distribution",
+            "wid_feature_distribution",
+            "person_reuse_distribution",
+        }:
+            val = _convert_pairs_list(val)
+        try:
+            setattr(config, key, val)
+        except Exception:
+            # Ignore unknown/mismatched keys
+            pass
+
+
+def _compose_account_holder_distribution(single: float, two: float):
+    ah_remaining = 1.0 - single - two
+    ah_ten_prob = ah_remaining * 0.933
+    ah_hundred_prob = ah_remaining * 0.06
+    ah_thousand_prob = ah_remaining * 0.007
+    return [
+        (1, single),
+        (2, two),
+        (10, ah_ten_prob),
+        (100, ah_hundred_prob),
+        (1000, ah_thousand_prob),
+    ]
+
+
+def _compose_beneficial_owner_distribution(zero: float, one: float):
+    bo_remaining = 1.0 - zero - one
+    bo_two_prob = bo_remaining * 0.5
+    bo_ten_prob = bo_remaining * 0.4
+    bo_fifty_prob = bo_remaining * 0.09
+    bo_thousand_prob = bo_remaining * 0.01
+    return [
+        (0, zero),
+        (1, one),
+        (2, bo_two_prob),
+        (10, bo_ten_prob),
+        (50, bo_fifty_prob),
+        (1000, bo_thousand_prob),
+    ]
+
+
+def _compose_wid_feature_distribution(p00001: float, p00002_00010: float):
+    wf_remaining = 1.0 - p00001 - p00002_00010
+    wf_00011_00100_prob = wf_remaining * 0.8
+    wf_00101_99999_prob = wf_remaining * 0.2
+    return [
+        (1, p00001),
+        (10, p00002_00010),
+        (100, wf_00011_00100_prob),
+        (99999, wf_00101_99999_prob),
+    ]
+
+
+def _compose_person_reuse_distribution(single: float, two: float):
+    pr_remaining = 1.0 - single - two
+    pr_ten_prob = pr_remaining * 0.933
+    pr_hundred_prob = pr_remaining * 0.06
+    pr_thousand_prob = pr_remaining * 0.007
+    return [
+        (1, single),
+        (2, two),
+        (10, pr_ten_prob),
+        (100, pr_hundred_prob),
+        (1000, pr_thousand_prob),
+    ]
+
+
+def _build_generator_config(
+    ctx: click.Context,
+    *,
+    legal_entity_probability: float,
+    account_holder_single_prob: float,
+    account_holder_two_prob: float,
+    beneficial_owner_zero_prob: float,
+    beneficial_owner_one_prob: float,
+    economically_active_prob: float,
+    wid_feature_00001_prob: float,
+    wid_feature_00002_00010_prob: float,
+    person_reuse_single_prob: float,
+    person_reuse_two_prob: float,
+) -> GeneratorConfig:
+    """Build GeneratorConfig by merging config file values with CLI overrides."""
+    # Base config from file and defaults
+    config = GeneratorConfig()
+    _apply_config_file_values(config, load_config_from_file())
+
+    config_kwargs = {}
+    provided_params = _get_provided_params(ctx)
+
+    # Simple numeric overrides
+    if "legal_entity_probability" in provided_params:
+        config_kwargs["legal_entity_probability"] = legal_entity_probability
+    if "economically_active_prob" in provided_params:
+        config_kwargs["economically_active_probability"] = economically_active_prob
+
+    # Distribution overrides (only when any related CLI value was provided)
+    if any(
+        p in provided_params
+        for p in ("account_holder_single_prob", "account_holder_two_prob")
+    ):
+        config_kwargs["account_holder_distribution"] = (
+            _compose_account_holder_distribution(
+                account_holder_single_prob, account_holder_two_prob
+            )
+        )
+
+    if any(
+        p in provided_params
+        for p in ("beneficial_owner_zero_prob", "beneficial_owner_one_prob")
+    ):
+        config_kwargs["beneficial_owner_distribution"] = (
+            _compose_beneficial_owner_distribution(
+                beneficial_owner_zero_prob, beneficial_owner_one_prob
+            )
+        )
+
+    if any(
+        p in provided_params
+        for p in ("wid_feature_00001_prob", "wid_feature_00002_00010_prob")
+    ):
+        config_kwargs["wid_feature_distribution"] = _compose_wid_feature_distribution(
+            wid_feature_00001_prob, wid_feature_00002_00010_prob
+        )
+
+    if any(
+        p in provided_params
+        for p in ("person_reuse_single_prob", "person_reuse_two_prob")
+    ):
+        config_kwargs["person_reuse_distribution"] = _compose_person_reuse_distribution(
+            person_reuse_single_prob, person_reuse_two_prob
+        )
+
+    for key, val in config_kwargs.items():
+        setattr(config, key, val)
+
+    return config
+
+
+def _format_person_inline(person) -> str:
+    # Helper for txt/csv human-readable inline formatting
+    if isinstance(person, LegalEntity):
+        return f"{person.name} (Legal Entity, WID: {person.wid}), Address: {person.full_address}"
+    else:
+        ids_str = f"Tax-ID: {person.tax_id}"
+        if getattr(person, "wid", None):
+            ids_str += f", WID: {person.wid}"
+        return f"{person.full_name} ({ids_str})"
+
+
+def _person_to_dict(person) -> dict:
+    # Helper for JSON formatting
+    if isinstance(person, LegalEntity):
+        return {
+            "type": "legal_entity",
+            "name": person.name,
+            "wid": person.wid,
+            "street_address": person.street_address,
+            "city": person.city,
+            "postal_code": person.postal_code,
+        }
+    else:
+        d = {
+            "type": "natural_person",
+            "first_name": person.first_name,
+            "last_name": person.last_name,
+            "birth_date": str(person.birth_date),
+            "tax_id": person.tax_id,
+            "street_address": person.street_address,
+            "city": person.city,
+            "postal_code": person.postal_code,
+        }
+        if getattr(person, "wid", None):
+            d["wid"] = person.wid
+        return d
+
+
+def _add_person_xml(parent: ET.Element, tag: str, person) -> None:
+    # Helper for XML formatting
+    elem = ET.SubElement(parent, tag)
+    if isinstance(person, LegalEntity):
+        ET.SubElement(elem, "type").text = "legal_entity"
+        ET.SubElement(elem, "name").text = person.name
+        ET.SubElement(elem, "wid").text = person.wid
+        ET.SubElement(elem, "street_address").text = person.street_address
+        ET.SubElement(elem, "city").text = person.city
+        ET.SubElement(elem, "postal_code").text = person.postal_code
+    else:
+        ET.SubElement(elem, "type").text = "natural_person"
+        ET.SubElement(elem, "first_name").text = person.first_name
+        ET.SubElement(elem, "last_name").text = person.last_name
+        ET.SubElement(elem, "birth_date").text = str(person.birth_date)
+        ET.SubElement(elem, "tax_id").text = person.tax_id
+        if getattr(person, "wid", None):
+            ET.SubElement(elem, "wid").text = person.wid
+        ET.SubElement(elem, "street_address").text = person.street_address
+        ET.SubElement(elem, "city").text = person.city
+        ET.SubElement(elem, "postal_code").text = person.postal_code
+
+
+def _output_results_stdout(
+    ibans: List[IBANRecord],
+    *,
+    output_format: Optional[str],
+    include_bank_info: bool,
+    include_personal_info: bool,
+) -> None:
+    """Handle stdout output across supported formats (txt, csv, xml, json, or plain)."""
+    formatter = OutputFormatter()
+    if output_format is None:
+        formatter.format_stdout(ibans, include_bank_info, include_personal_info)
+        return
+
+    if output_format == "txt":
+        for record in ibans:
+            holders_display = "; ".join(
+                _format_person_inline(h) for h in record.account_holders
+            )
+            beneficiaries_strs = [
+                _format_person_inline(b) for b in record.beneficiaries
+            ]
+            beneficiaries_display = (
+                "; ".join(beneficiaries_strs) if beneficiaries_strs else "None"
+            )
+
+            if include_personal_info and include_bank_info:
+                print(
+                    f"{record.iban} | Holders: {holders_display} | Beneficiaries: {beneficiaries_display} | {record.bank.name} | {record.bank.bic} | {record.bank.bankleitzahl}"
+                )
+            elif include_personal_info:
+                print(
+                    f"{record.iban} | Holders: {holders_display} | Beneficiaries: {beneficiaries_display}"
+                )
+            elif include_bank_info:
+                print(
+                    f"{record.iban} | {record.bank.name} | {record.bank.bic} | {record.bank.bankleitzahl}"
+                )
+            else:
+                print(record.iban)
+    elif output_format == "csv":
+        print("IBAN,Account Holders,Beneficial Owners,Bank Name,BIC,Bank Code")
+        for record in ibans:
+            holders_csv = "; ".join(
+                _format_person_inline(h) for h in record.account_holders
+            )
+            beneficiaries_strs = [
+                _format_person_inline(b) for b in record.beneficiaries
+            ]
+            beneficiaries_csv = (
+                "; ".join(beneficiaries_strs) if beneficiaries_strs else "None"
+            )
+
+            print(
+                f'"{record.iban}","{holders_csv}","{beneficiaries_csv}","{record.bank.name}","{record.bank.bic}","{record.bank.bankleitzahl}"'
+            )
+    elif output_format == "xml":
+        import xml.dom.minidom
+
+        root = ET.Element("accounts")
+        for record in ibans:
+            iban_elem = ET.SubElement(root, "account")
+            ET.SubElement(iban_elem, "iban").text = record.iban
+
+            holders_elem = ET.SubElement(iban_elem, "account_holders")
+            for holder in record.account_holders:
+                _add_person_xml(holders_elem, "holder", holder)
+
+            beneficiaries_elem = ET.SubElement(iban_elem, "beneficiaries")
+            for beneficiary in record.beneficiaries:
+                _add_person_xml(beneficiaries_elem, "beneficiary", beneficiary)
+
+            bank_elem = ET.SubElement(iban_elem, "bank")
+            ET.SubElement(bank_elem, "name").text = record.bank.name
+            ET.SubElement(bank_elem, "bic").text = record.bank.bic
+            ET.SubElement(bank_elem, "code").text = record.bank.bankleitzahl
+        rough_string = ET.tostring(root, "utf-8")
+        reparsed = xml.dom.minidom.parseString(rough_string)
+        print(reparsed.toprettyxml(indent="  ").split("\n", 1)[1])
+    elif output_format == "json":
+        data = []
+        for record in ibans:
+            holders_data = [_person_to_dict(h) for h in record.account_holders]
+            beneficiaries_data = [_person_to_dict(b) for b in record.beneficiaries]
+            data.append(
+                {
+                    "iban": record.iban,
+                    "account_holders": holders_data,
+                    "beneficiaries": beneficiaries_data,
+                    "bank": {
+                        "name": record.bank.name,
+                        "bic": record.bank.bic,
+                        "code": record.bank.bankleitzahl,
+                    },
+                }
+            )
+        print(json.dumps(data, ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":

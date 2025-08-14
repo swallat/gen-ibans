@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _No unreleased changes yet._
 
+## [2.1.0] - 2025-08-14
+
+### Added
+- Regex-based bank filters in CLI:
+  - `--filter-bank-name` (case-insensitive regex)
+  - `--filter-bic` (case-insensitive regex)
+  - `--filter-blz` (regex, case-sensitive for exact digit matches)
+- Configurable filters via config file under `[cli]` (e.g., `filter_bank_name = "Bundesbank"`)
+- `--no-color` option to disable colored output and help
+- Improved colorized help with highlighted option group headers
+- README updates: bank filter documentation, examples, and parameter table updates
+
+### Changed
+- Merged defaults from config file for CLI and downloader sections when CLI flags are not provided
+- Enhanced error messages for invalid regex patterns and no-match scenarios
+
+### Fixed
+- Robust handling of filter application ordering and empty-result validation
+
 ## [2.0.0] - 2025-08-14
 
 ### Added
@@ -160,7 +179,8 @@ This initial release provides a complete, production-ready IBAN generator with:
 - Professional development infrastructure
 - Extensive documentation and setup automation
 
-[Unreleased]: https://github.com/swallat/gen-ibans/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/swallat/gen-ibans/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/swallat/gen-ibans/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/swallat/gen-ibans/compare/v1.0.1...v2.0.0
 [1.0.1]: https://github.com/swallat/gen-ibans/releases/tag/v1.0.1
 [1.0.0]: https://github.com/swallat/gen-ibans/releases/tag/v1.0.0
