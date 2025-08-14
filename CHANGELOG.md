@@ -7,14 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - 2025-08-14
 
+### Added
+- New automated test reporting setup:
+  - pytest.ini config to generate JUnit XML (reports\junit.xml) and coverage reports (XML and HTML in reports\)
+  - Added pytest-cov to dev dependencies; documented in README
+- Configuration via TOML using ConfZ with structured sections:
+  - [generator]: probabilities and distributions for entity types, WID features, and person reuse
+  - [downloader]: defaults for Bundesbank download (format, cache_dir, force_download, no_version_check)
+  - [cli]: defaults for count, seed, output_format, output path and common flags (no_echo, iban_only, no_personal_info, no_bank_info, clean, no_color)
+- New CLI options:
+  - `--show-config-path` to print the effective default config path
+  - `--write-default-config` to generate a commented default `config.toml`
+  - `--config-dir` to select the directory for writing `config.toml` (default: current directory)
+- Separate `gen-ibans-init-config` command to create a default config file at the OS default path
+- Colorized CLI help with highlighted option group headers for improved readability
+
 ### Changed
+- CLI structure: switched to subcommands. The former top-level command is now `gen-ibans gen`, and `gen-ibans-init-config` is now `gen-ibans init`.
+- Standard config file switched from JSON to TOML; existing `config.json` files remain supported for backward compatibility
+- Config file search path now prioritizes the current working directory and then the user config directory
+- Help output: option group headers (click-option-group) are now highlighted consistently
+- Output examples and documentation updated to reflect current JSON, CSV, and XML structures
 - **XML Output Format**: Updated XML structure for better consistency
   - Root element changed from `<ibans>` to `<accounts>`
   - Individual entries changed from `<iban><number>` to `<account><iban>`
   - Maintains backward compatibility in terms of data content
+- Added MIT license header to all newly added source and test files
+
+### Fixed
+- Robust handling of config loading with ConfZ fallback to manual parsing; graceful failure on malformed configs
+- Improved stdout coloring control with `--no-color` and `--clean`
 
 ### Updated
-- **Dependencies**: Updated typing-extensions dependency versions
+- **Dependencies**: Added ConfZ and PlatformDirs; updated typing-extensions and related transitive dependencies
 
 ## [1.0.1] - 2025-08-13
 
