@@ -15,6 +15,9 @@ requires-python = ">=3.8"
 dependencies = [
     "faker>=20.0.0",
     "click>=8.0.0",
+    "click-option-group>=0.5.7",
+    "platformdirs>=3.0.0",
+    "confz>=2.0.0",
 ]
 keywords = ["iban", "germany", "banking", "generator", "prng", "bundesbank"]
 classifiers = [
@@ -36,7 +39,7 @@ classifiers = [
 ]
 
 [project.scripts]
-gen-ibans = "gen_ibans.cli:main"
+gen-ibans = "gen_ibans.cli:cli"
 
 [project.urls]
 "Homepage" = "https://github.com/swallat/gen-ibans"
@@ -54,6 +57,7 @@ dev = [
     "py>=1.11.0",
     "pygments>=2.19.2",
     "pytest>=8.3.5",
+    "pytest-cov>=4.1.0",
     "ruff>=0.12.8",
 ]
 

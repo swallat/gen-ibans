@@ -187,4 +187,5 @@ Thumbs.db
 *~
 
 # Bundesbank data cache
-bundesbank_data/
+bundesbank_data/!/config.toml
+config.toml

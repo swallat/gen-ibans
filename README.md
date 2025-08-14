@@ -79,13 +79,13 @@ pip install -e .
 
 ```bash
 # Generate 5 IBANs using automatically downloaded data
-gen-ibans --count 5
+gen-ibans gen --count 5
 
 # Generate IBANs with a specific seed for reproducibility
-gen-ibans --count 10 --seed 12345
+gen-ibans gen --count 10 --seed 12345
 
 # Generate and save to JSON file
-gen-ibans --count 100 --format json --output banks.json
+gen-ibans gen --count 100 --format json --output banks.json
 ```
 
 ## Usage
@@ -97,76 +97,76 @@ The tool can be used with automatically downloaded data or local files:
 #### Automatic Data Download (Recommended)
 ```bash
 # Use latest data from Bundesbank (CSV format)
-gen-ibans --count 5
+gen-ibans gen --count 5
 
 # Force download of fresh data
-gen-ibans --count 5 --force-download
+gen-ibans gen --count 5 --force-download
 
 # Use XML format from Bundesbank
-gen-ibans --count 5 --download-format xml
+gen-ibans gen --count 5 --download-format xml
 
 # Disable version checking (use cached data)
-gen-ibans --count 5 --no-version-check
+gen-ibans gen --count 5 --no-version-check
 ```
 
 #### Local Data Files
 ```bash
 # Use local CSV file
-gen-ibans data/blz-aktuell-csv-data.csv --count 5
+gen-ibans gen data/blz-aktuell-csv-data.csv --count 5
 
 # Use local TXT file
-gen-ibans data/blz-aktuell-txt-data.txt --count 10
+gen-ibans gen data/blz-aktuell-txt-data.txt --count 10
 
 # Use local XML file
-gen-ibans data/blz-aktuell-xml-data.xml --count 20
+gen-ibans gen data/blz-aktuell-xml-data.xml --count 20
 ```
 
 ### Output Formats
 
 ```bash
 # Plain text output (default)
-gen-ibans --count 3
+gen-ibans gen --count 3
 
 # JSON format to stdout
-gen-ibans --count 3 --format json
+gen-ibans gen --count 3 --format json
 
 # Save to CSV file
-gen-ibans --count 100 --format csv --output results.csv
+gen-ibans gen --count 100 --format csv --output results.csv
 
 # Save to file without stdout echo
-gen-ibans --count 50 --format json --output data.json --no-echo
+gen-ibans gen --count 50 --format json --output data.json --no-echo
 
 # XML format
-gen-ibans --count 10 --format xml --output banks.xml
+gen-ibans gen --count 10 --format xml --output banks.xml
 ```
 
 ### Output Control Options
 
 ```bash
 # Only IBANs without any additional information
-gen-ibans --count 5 --iban-only
+gen-ibans gen --count 5 --iban-only
 
 # Exclude personal information
-gen-ibans --count 5 --no-personal-info
+gen-ibans gen --count 5 --no-personal-info
 
 # Exclude bank information
-gen-ibans --count 5 --no-bank-info
+gen-ibans gen --count 5 --no-bank-info
 
 # Clean mode: suppress all informational messages
-gen-ibans --count 5 --clean
+gen-ibans gen --count 5 --clean
 ```
 
 ### Advanced Options
 
 ```bash
 # Specify custom cache directory
-gen-ibans --count 5 --cache-dir /path/to/cache
+gen-ibans gen --count 5 --cache-dir /path/to/cache
 
 # Use specific seed for reproducible results
-gen-ibans --count 10 --seed 42
+gen-ibans gen --count 10 --seed 42
 
 # Multiple format example with all options
-gen-ibans --count 20 --seed 12345 --format json --output detailed.json --download-format xml --clean
+gen-ibans gen --count 20 --seed 12345 --format json --output detailed.json --download-format xml --clean
 ```
 
 ### CLI Parameters Reference
@@ -187,6 +187,110 @@ gen-ibans --count 20 --seed 12345 --format json --output detailed.json --downloa
 | `--force-download` | Force fresh download | *false* |
 | `--cache-dir` | Custom cache directory | *system temp* |
 | `--no-version-check` | Disable online version checking | *false* |
+
+### Konfiguration per Datei
+
+Du kannst Standardwerte für die Generierung bequem über eine Konfigurationsdatei setzen. CLI-Parameter haben immer Vorrang gegenüber Werten aus der Datei.
+
+- Standard-Speicherort (wird automatisch verwendet, wenn vorhanden):
+  - Windows: %APPDATA%\gen-ibans\config.toml
+  - Linux: ~/.config/gen-ibans/config.toml
+  - macOS: ~/Library/Application Support/gen-ibans/config.toml
+
+- Datei-Format: TOML. Die Datei ist ausführlich kommentiert und enthält zusätzlich auskommentierte Varianten.
+  - [generator]: fachliche Generierungs-Parameter (Wahrscheinlichkeiten/Verteilungen)
+  - [downloader]: Standardverhalten für automatischen Download (Format, Cache, Version-Check)
+  - [cli]: Standardwerte für CLI-Optionen (count, seed, Ausgabeformat/-pfad, Flags)
+
+- Beispielinhalt (Auszug):
+
+```toml
+# gen-ibans Konfigurationsdatei (TOML)
+[generator]
+# Wahrscheinlichkeit, dass der Kontoinhaber eine juristische Person ist (0..1).
+legal_entity_probability = 0.05
+
+# Wahrscheinlichkeit, dass natürliche Personen wirtschaftlich tätig sind (0..1).
+economically_active_probability = 0.20
+
+# Wahrscheinlichkeit, dass wirtschaftlich Berechtigte juristische Personen sind (derzeit 0).
+beneficiary_legal_entity_probability = 0.0
+
+# Verteilung der Anzahl der Kontoinhaber als Liste von [max_anzahl, wahrscheinlichkeit].
+# Beispiel (Default): ein Inhaber 70%, zwei Inhaber 15%, bis 10: 14%, bis 100: 0.9%, bis 1000: 0.1%
+account_holder_distribution = [[1, 0.70], [2, 0.15], [10, 0.14], [100, 0.009], [1000, 0.001]]
+# Variante (kommentiert): höhere Mehrpersonenkonten
+# account_holder_distribution = [[1, 0.60], [2, 0.25], [10, 0.13], [100, 0.019], [1000, 0.001]]
+
+# Verteilung der Anzahl wirtschaftlich Berechtigter als Liste von [max_anzahl, wahrscheinlichkeit].
+beneficial_owner_distribution = [[0, 0.70], [1, 0.20], [2, 0.05], [10, 0.04], [50, 0.009], [1000, 0.001]]
+# Variante: häufiger 1 wirtschaftlich Berechtigter
+# beneficial_owner_distribution = [[0, 0.50], [1, 0.35], [2, 0.10], [10, 0.04], [50, 0.009], [1000, 0.001]]
+
+# WID Verteilung (nur natürliche Personen). 1 -> 00001, 10 -> 00002-00010, 100 -> 00011-00100, 99999 -> 00101-99999
+wid_feature_distribution = [[1, 0.80], [10, 0.15], [100, 0.04], [99999, 0.01]]
+# Variante:
+# wid_feature_distribution = [[1, 0.60], [10, 0.20], [100, 0.15], [99999, 0.05]]
+
+# Wiederverwendung von Personen (wie oft dieselbe Person vorkommt) als [max_anzahl, wahrscheinlichkeit].
+person_reuse_distribution = [[1, 0.8], [2, 0.1], [5, 0.05], [15, 0.03], [50, 0.019], [200, 0.001]]
+# Variante: mehr Wiederverwendung im Long Tail
+# person_reuse_distribution = [[1, 0.7], [2, 0.15], [5, 0.07], [15, 0.05], [50, 0.028], [200, 0.002]]
+
+[downloader]
+# Standardformat beim automatischen Download von der Bundesbank (csv|txt|xml).
+download_format = "csv"
+# Erzwinge Neu-Download auch wenn Cache vorhanden ist.
+force_download = false
+# Optionaler Cache-Ordner (Pfad als String).
+# cache_dir = ".\\cache"
+# Online-Versionsprüfung deaktivieren (nur Cache-Alter nutzen).
+no_version_check = false
+
+[cli]
+# Standardanzahl zu generierender IBANs, wenn nicht per CLI angegeben.
+count = 1
+# Fester Seed für deterministische Ergebnisse (optional).
+# seed = 12345
+# Ausgabeformat (txt|csv|xml|json); leer bedeutet Plain-Text.
+# output_format = "json"
+# Ausgabedatei-Pfad; leer bedeutet stdout.
+# output = ".\\ibans.json"
+# Unterdrücke stdout, wenn in Datei geschrieben wird.
+no_echo = false
+# Nur IBANs ohne Bank- und Personendaten ausgeben.
+iban_only = false
+# Personenbezogene Daten ausblenden.
+no_personal_info = false
+# Bankinformationen ausblenden.
+no_bank_info = false
+# Zusätzliche Informationsmeldungen unterdrücken.
+clean = false
+# Farbige Ausgabe deaktivieren.
+no_color = false
+```
+
+- Konfigurationsdatei erstellen (mit Standardwerten, Doku und Varianten):
+
+```bash
+# Zeige den verwendeten Konfigurationspfad an
+gen-ibans --show-config-path
+
+# Erstellt die Datei am Standard-Speicherort (siehe oben)
+gen-ibans init
+
+# Optional: an benutzerdefiniertem Pfad erstellen
+gen-ibans init --path ".\\mein-config.toml"
+
+# Optional: globales Zielverzeichnis über Gruppen-Option angeben (wirkt auf Unterkommandos)
+# Beispiel: init schreibt dann nach ".\\mein-ordner\\config.toml"
+gen-ibans --config-dir ".\\mein-ordner" init
+```
+
+Hinweise:
+- Fehlt die Datei, werden Bibliotheks-Defaults verwendet.
+- Werte aus der Datei werden automatisch geladen, können aber jederzeit per CLI-Option überschrieben werden (CLI > Datei > Defaults).
+- Zur Abwärtskompatibilität werden vorhandene config.json Dateien weiterhin eingelesen, falls vorhanden.
 
 ### Python Module Usage
 
@@ -246,21 +350,32 @@ All formats support:
 
 ### Plain Text (Default)
 ```
-DE48500700100000000001 | Max Mustermann | Musterstraße 1, 10115 Berlin | Deutsche Bank | DEUTDEBBXXX | 50070010
+DE48500700100000000001 | Holders: Max Mustermann (Tax-ID: 12345678901, WID: DE0000112345) | Beneficiaries: None | Deutsche Bank | DEUTDEBBXXX | 50070010
 ```
+
+Notes:
+- When multiple account holders exist, they are shown as a semicolon-separated list after "Holders:".
+- Beneficiaries are shown similarly after "Beneficiaries:" or "None" if empty.
 
 ### JSON Format
 ```json
 [
   {
     "iban": "DE48500700100000000001",
-    "person": {
-      "first_name": "Max",
-      "last_name": "Mustermann",
-      "street_address": "Musterstraße 1",
-      "city": "Berlin",
-      "postal_code": "10115"
-    },
+    "account_holders": [
+      {
+        "type": "natural_person",
+        "first_name": "Max",
+        "last_name": "Mustermann",
+        "birth_date": "1990-01-01",
+        "tax_id": "12345678901",
+        "street_address": "Musterstraße 1",
+        "city": "Berlin",
+        "postal_code": "10115",
+        "wid": "DE0000112345"
+      }
+    ],
+    "beneficiaries": [],
     "bank": {
       "name": "Deutsche Bank",
       "bic": "DEUTDEBBXXX",
@@ -272,30 +387,37 @@ DE48500700100000000001 | Max Mustermann | Musterstraße 1, 10115 Berlin | Deutsc
 
 ### CSV Format
 ```csv
-IBAN,First Name,Last Name,Street Address,City,Postal Code,Bank Name,BIC,Bank Code
-DE48500700100000000001,Max,Mustermann,Musterstraße 1,Berlin,10115,Deutsche Bank,DEUTDEBBXXX,50070010
+IBAN,Account Holders,Beneficial Owners,Bank Name,BIC,Bank Code
+DE48500700100000000001,"Max Mustermann (Tax-ID: 12345678901, WID: DE0000112345)","None","Deutsche Bank","DEUTDEBBXXX","50070010"
 ```
 
 ### XML Format
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<ibans>
-  <iban>
-    <number>DE48500700100000000001</number>
-    <person>
-      <first_name>Max</first_name>
-      <last_name>Mustermann</last_name>
-      <street_address>Musterstraße 1</street_address>
-      <city>Berlin</city>
-      <postal_code>10115</postal_code>
-    </person>
+<accounts>
+  <account>
+    <iban>DE48500700100000000001</iban>
+    <account_holders>
+      <holder>
+        <type>natural_person</type>
+        <first_name>Max</first_name>
+        <last_name>Mustermann</last_name>
+        <birth_date>1990-01-01</birth_date>
+        <tax_id>12345678901</tax_id>
+        <wid>DE0000112345</wid>
+        <street_address>Musterstraße 1</street_address>
+        <city>Berlin</city>
+        <postal_code>10115</postal_code>
+      </holder>
+    </account_holders>
+    <beneficiaries />
     <bank>
       <name>Deutsche Bank</name>
       <bic>DEUTDEBBXXX</bic>
       <code>50070010</code>
     </bank>
-  </iban>
-</ibans>
+  </account>
+</accounts>
 ```
 
 ## Development
@@ -484,9 +606,11 @@ To create a new release of this project:
 
 1. **Create and push a version tag**:
    ```bash
-   # Create a new tag (replace x.y.z with your version number)
-   git tag v1.0.0
-   git push origin v1.0.0
+   # Create a new tag for the next release (don’t run until after merge into master/main)
+   # Next planned release: v2.0.0
+   # When ready:
+   # git tag v2.0.0
+   # git push origin v2.0.0
    ```
 
 2. **Automatic process**: Once you push a tag starting with `v*`, GitHub Actions will automatically:
@@ -623,6 +747,13 @@ Run the comprehensive test suite:
 # Run all tests with uv
 uv run pytest tests/ -v
 
+# Generate coverage and JUnit reports (configured in pytest.ini)
+# Reports will be written to:
+#  - JUnit XML:   reports\junit.xml
+#  - Coverage XML: reports\coverage.xml
+#  - Coverage HTML: reports\html\index.html
+uv run pytest -q
+
 # Run specific test modules
 uv run pytest tests/test_iban_generator.py -v
 uv run pytest tests/test_cli.py -v
@@ -630,6 +761,16 @@ uv run pytest tests/test_format_encoding.py -v
 
 # Run with unittest
 python -m unittest discover tests -v
+```
+
+Linting:
+
+```bash
+# Check with ruff
+uv run ruff check
+
+# Auto-fix where possible
+uv run ruff check --fix
 ```
 
 ### Building and Installation

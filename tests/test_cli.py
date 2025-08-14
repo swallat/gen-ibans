@@ -39,19 +39,39 @@ class TestOutputFormatter(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        person1 = PersonalInfo("Max", "Mustermann", "Musterstraße 1", "Berlin", "10115")
-        person2 = PersonalInfo("Anna", "Schmidt", "Hauptstraße 42", "München", "80331")
+        person1 = PersonalInfo(
+            "Max",
+            "Mustermann",
+            "Musterstraße 1",
+            "Berlin",
+            "10115",
+            "12345678901",
+            "DE0000112345",
+            True,
+        )
+        person2 = PersonalInfo(
+            "Anna",
+            "Schmidt",
+            "Hauptstraße 42",
+            "München",
+            "80331",
+            "98765432109",
+            None,
+            False,
+        )
 
         self.test_ibans = [
             IBANRecord(
                 "DE89370400440532013000",
                 BankInfo("37040044", "COBADEFFXXX", "Commerzbank"),
-                person1,
+                [person1],  # account_holders as list
+                [],  # beneficiaries as empty list
             ),
             IBANRecord(
                 "DE02120300000000202051",
                 BankInfo("12030000", "BYLADEM1XXX", "Deutsche Bank"),
-                person2,
+                [person2],  # account_holders as list
+                [],  # beneficiaries as empty list
             ),
         ]
 
@@ -64,11 +84,11 @@ class TestOutputFormatter(unittest.TestCase):
 
         output = mock_stdout.getvalue()
         self.assertIn(
-            "DE89370400440532013000 | Max Mustermann | Musterstraße 1, 10115 Berlin | Commerzbank | COBADEFFXXX | 37040044",
+            "DE89370400440532013000 | Holders: Max Mustermann (Tax-ID: 12345678901, WID: DE0000112345) | Beneficiaries: None | Commerzbank | COBADEFFXXX | 37040044",
             output,
         )
         self.assertIn(
-            "DE02120300000000202051 | Anna Schmidt | Hauptstraße 42, 80331 München | Deutsche Bank | BYLADEM1XXX | 12030000",
+            "DE02120300000000202051 | Holders: Anna Schmidt (Tax-ID: 98765432109) | Beneficiaries: None | Deutsche Bank | BYLADEM1XXX | 12030000",
             output,
         )
 
@@ -123,11 +143,11 @@ class TestOutputFormatter(unittest.TestCase):
                 content = f.read()
 
             self.assertIn(
-                "DE89370400440532013000 | Max Mustermann | Musterstraße 1, 10115 Berlin | Commerzbank | COBADEFFXXX | 37040044",
+                "DE89370400440532013000 | Holders: Max Mustermann (Tax-ID: 12345678901, WID: DE0000112345) | Beneficiaries: None | Commerzbank | COBADEFFXXX | 37040044",
                 content,
             )
             self.assertIn(
-                "DE02120300000000202051 | Anna Schmidt | Hauptstraße 42, 80331 München | Deutsche Bank | BYLADEM1XXX | 12030000",
+                "DE02120300000000202051 | Holders: Anna Schmidt (Tax-ID: 98765432109) | Beneficiaries: None | Deutsche Bank | BYLADEM1XXX | 12030000",
                 content,
             )
         finally:
@@ -210,11 +230,8 @@ class TestOutputFormatter(unittest.TestCase):
                 rows[0],
                 [
                     "IBAN",
-                    "First Name",
-                    "Last Name",
-                    "Street Address",
-                    "City",
-                    "Postal Code",
+                    "Account Holders",
+                    "Beneficial Owners",
                     "Bank Name",
                     "BIC",
                     "Bank Code",
@@ -226,11 +243,8 @@ class TestOutputFormatter(unittest.TestCase):
                 rows[1],
                 [
                     "DE89370400440532013000",
-                    "Max",
-                    "Mustermann",
-                    "Musterstraße 1",
-                    "Berlin",
-                    "10115",
+                    "Max Mustermann (Tax-ID: 12345678901, WID: DE0000112345)",
+                    "None",
                     "Commerzbank",
                     "COBADEFFXXX",
                     "37040044",
@@ -240,11 +254,8 @@ class TestOutputFormatter(unittest.TestCase):
                 rows[2],
                 [
                     "DE02120300000000202051",
-                    "Anna",
-                    "Schmidt",
-                    "Hauptstraße 42",
-                    "München",
-                    "80331",
+                    "Anna Schmidt (Tax-ID: 98765432109)",
+                    "None",
                     "Deutsche Bank",
                     "BYLADEM1XXX",
                     "12030000",
@@ -392,11 +403,8 @@ class TestMainFunction(unittest.TestCase):
                 rows[0],
                 [
                     "IBAN",
-                    "First Name",
-                    "Last Name",
-                    "Street Address",
-                    "City",
-                    "Postal Code",
+                    "Account Holders",
+                    "Beneficial Owners",
                     "Bank Name",
                     "BIC",
                     "Bank Code",
