@@ -100,10 +100,36 @@ def test_wid_present_only_when_economically_active():
         for rec in recs_active:
             for h in rec.account_holders:
                 assert isinstance(h, PersonalInfo)
-                assert h.wid is not None and h.wid.startswith("DE") and len(h.wid) == 13
+                assert (
+                    h.wid is not None
+                    and h.wid.startswith("DE")
+                    and (
+                        ("-" not in h.wid and len(h.wid) == 12 and h.wid[2:].isdigit())
+                        or (
+                            "-" in h.wid
+                            and len(h.wid.split("-")[0]) == 12
+                            and h.wid.split("-")[0][2:].isdigit()
+                            and len(h.wid.split("-")[1]) == 5
+                            and h.wid.split("-")[1].isdigit()
+                        )
+                    )
+                )
             for b in rec.beneficiaries:
                 assert isinstance(b, PersonalInfo)
-                assert b.wid is not None and b.wid.startswith("DE") and len(b.wid) == 13
+                assert (
+                    b.wid is not None
+                    and b.wid.startswith("DE")
+                    and (
+                        ("-" not in b.wid and len(b.wid) == 12 and b.wid[2:].isdigit())
+                        or (
+                            "-" in b.wid
+                            and len(b.wid.split("-")[0]) == 12
+                            and b.wid.split("-")[0][2:].isdigit()
+                            and len(b.wid.split("-")[1]) == 5
+                            and b.wid.split("-")[1].isdigit()
+                        )
+                    )
+                )
     finally:
         if os.path.exists(path):
             os.unlink(path)

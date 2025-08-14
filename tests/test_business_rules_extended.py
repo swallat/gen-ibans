@@ -70,10 +70,19 @@ def test_beneficiaries_can_be_legal_entities_when_configured():
             # Beneficiaries present are LegalEntity (count can be 0..3)
             assert all(isinstance(b, LegalEntity) for b in rec.beneficiaries)
             assert len(rec.beneficiaries) <= 3
-            # LegalEntity WID format: DE + 9 digits -> len 11
+            # LegalEntity WID format: 'DE' + 9 digits, optionally '-' + 5-digit feature
             for b in rec.beneficiaries:
-                assert (
-                    b.wid.startswith("DE") and len(b.wid) == 11 and b.wid[2:].isdigit()
+                wid = b.wid
+                base, sep, feature = wid.partition("-")
+                assert wid.startswith("DE") and (
+                    (sep == "" and len(wid) == 11 and wid[2:].isdigit())
+                    or (
+                        sep == "-"
+                        and len(base) == 11
+                        and base[2:].isdigit()
+                        and len(feature) == 5
+                        and feature.isdigit()
+                    )
                 )
     finally:
         if os.path.exists(path):

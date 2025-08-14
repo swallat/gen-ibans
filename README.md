@@ -56,7 +56,6 @@ A powerful tool for generating valid German IBANs using real Bundesbank data wit
 - ✅ **Version Checking**: Automatically detects and downloads newer data versions
 - ✅ **Comprehensive CLI**: Full-featured command-line interface with extensive options
 - ✅ **Bank Filtering**: Regex-based filters for bank name, BIC, and BLZ (configurable via CLI or config file)
-- ✅ **Colorized Help**: Enhanced, colorized CLI help with optional --no-color
 - ✅ **Personal Data**: Includes realistic German names and addresses using Faker
 
 ## Installation
@@ -265,10 +264,11 @@ beneficial_owner_distribution = [[0, 0.70], [1, 0.20], [2, 0.05], [10, 0.04], [5
 # Variante: häufiger 1 wirtschaftlich Berechtigter
 # beneficial_owner_distribution = [[0, 0.50], [1, 0.35], [2, 0.10], [10, 0.04], [50, 0.009], [1000, 0.001]]
 
-# WID Verteilung (nur natürliche Personen). 1 -> 00001, 10 -> 00002-00010, 100 -> 00011-00100, 99999 -> 00101-99999
-wid_feature_distribution = [[1, 0.80], [10, 0.15], [100, 0.04], [99999, 0.01]]
+# WID Verteilung (nur natürliche Personen).
+# 0 -> 00000 (Kein Unterscheidungsmerkmal), 1 -> 00001, 10 -> 00002-00010, 99999 -> >=00011 (00011-99999)
+wid_feature_distribution = [[0, 0.70], [1, 0.10], [10, 0.099], [99999, 0.001]]
 # Variante:
-# wid_feature_distribution = [[1, 0.60], [10, 0.20], [100, 0.15], [99999, 0.05]]
+# wid_feature_distribution = [[0, 0.50], [1, 0.20], [10, 0.29], [99999, 0.01]]
 
 # Wiederverwendung von Personen (wie oft dieselbe Person vorkommt) als [max_anzahl, wahrscheinlichkeit].
 person_reuse_distribution = [[1, 0.8], [2, 0.1], [5, 0.05], [15, 0.03], [50, 0.019], [200, 0.001]]
@@ -328,7 +328,6 @@ gen-ibans --config-dir ".\\mein-ordner" init
 Hinweise:
 - Fehlt die Datei, werden Bibliotheks-Defaults verwendet.
 - Werte aus der Datei werden automatisch geladen, können aber jederzeit per CLI-Option überschrieben werden (CLI > Datei > Defaults).
-- Zur Abwärtskompatibilität werden vorhandene config.json Dateien weiterhin eingelesen, falls vorhanden.
 
 ### Python Module Usage
 
@@ -388,7 +387,7 @@ All formats support:
 
 ### Plain Text (Default)
 ```
-DE48500700100000000001 | Holders: Max Mustermann (Tax-ID: 12345678901, WID: DE0000112345) | Beneficiaries: None | Deutsche Bank | DEUTDEBBXXX | 50070010
+DE48500700100000000001 | Holders: Max Mustermann (Tax-ID: 12345678901, WID: DE0000001234-00001) | Beneficiaries: None | Deutsche Bank | DEUTDEBBXXX | 50070010
 ```
 
 Notes:
@@ -410,7 +409,7 @@ Notes:
         "street_address": "Musterstraße 1",
         "city": "Berlin",
         "postal_code": "10115",
-        "wid": "DE0000112345"
+        "wid": "DE0000001234-00001"
       }
     ],
     "beneficiaries": [],
@@ -426,7 +425,7 @@ Notes:
 ### CSV Format
 ```csv
 IBAN,Account Holders,Beneficial Owners,Bank Name,BIC,Bank Code
-DE48500700100000000001,"Max Mustermann (Tax-ID: 12345678901, WID: DE0000112345)","None","Deutsche Bank","DEUTDEBBXXX","50070010"
+DE48500700100000000001,"Max Mustermann (Tax-ID: 12345678901, WID: DE0000001234-00001)","None","Deutsche Bank","DEUTDEBBXXX","50070010"
 ```
 
 ### XML Format
@@ -442,7 +441,7 @@ DE48500700100000000001,"Max Mustermann (Tax-ID: 12345678901, WID: DE0000112345)"
         <last_name>Mustermann</last_name>
         <birth_date>1990-01-01</birth_date>
         <tax_id>12345678901</tax_id>
-        <wid>DE0000112345</wid>
+        <wid>DE0000001234-00001</wid>
         <street_address>Musterstraße 1</street_address>
         <city>Berlin</city>
         <postal_code>10115</postal_code>
@@ -645,10 +644,10 @@ To create a new release of this project:
 1. **Create and push a version tag**:
    ```bash
    # Create a new tag for the next release (don’t run until after merge into master/main)
-   # Next planned release: v2.1.0
-   # When ready:
-   # git tag v2.1.0
-   # git push origin v2.1.0
+   # Next planned release: v2.1.1
+  # When ready:
+  # git tag v2.1.1
+  # git push origin v2.1.1
    ```
 
 2. **Automatic process**: Once you push a tag starting with `v*`, GitHub Actions will automatically:

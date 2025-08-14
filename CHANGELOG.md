@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_No unreleased changes yet._
+## [2.1.1] - 2025-08-14
+
+### Changed
+- Updated generated example configuration (config.toml) to current defaults of the new ID system:
+  - WID feature distribution now includes 0 = 00000 (kein Unterscheidungsmerkmal) and adjusted probabilities
+  - Comments updated to reflect new WID ranges (0, 1, 10, 99999)
+- README updated:
+  - Example configuration synchronized with generated file
+  - Removed incorrect mention of legacy config.json backward compatibility
 
 ## [2.1.0] - 2025-08-14
 
@@ -179,7 +187,8 @@ This initial release provides a complete, production-ready IBAN generator with:
 - Professional development infrastructure
 - Extensive documentation and setup automation
 
-[Unreleased]: https://github.com/swallat/gen-ibans/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/swallat/gen-ibans/compare/v2.1.1...HEAD
+[2.1.1]: https://github.com/swallat/gen-ibans/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/swallat/gen-ibans/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/swallat/gen-ibans/compare/v1.0.1...v2.0.0
 [1.0.1]: https://github.com/swallat/gen-ibans/releases/tag/v1.0.1

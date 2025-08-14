@@ -177,13 +177,14 @@ class GeneratorConfig:
     # Economic activity probability for natural persons (default: 80% non-active, 20% active)
     economically_active_probability: float = 0.20
 
-    # WID distinguishing feature distribution (probabilities sum to 1.0)
+    # WID distinguishing feature distribution
+    # Note: 0 represents 'kein Unterscheidungsmerkmal' encoded as 00000 in the WID suffix
     wid_feature_distribution: List[tuple] = field(
         default_factory=lambda: [
-            (1, 0.80),  # 00001: 80%
-            (10, 0.15),  # 00002-00010: 15%
-            (100, 0.04),  # 00011-00100: 4%
-            (99999, 0.01),  # 00101-99999: 1%
+            (0, 0.70),  # 00000 (kein Unterscheidungsmerkmal): 70%
+            (1, 0.10),  # 00001: 10%
+            (10, 0.099),  # 00002-00010: 9.9%
+            (99999, 0.001),  # >=00011: 0.1% (00011-99999)
         ]
     )
 
@@ -243,15 +244,17 @@ class GeneratorConfig:
         for max_val, probability in self.wid_feature_distribution:
             cumulative += probability
             if rand_val <= cumulative:
-                if max_val == 1:
-                    return 1  # Always 00001 for first category
+                if max_val == 0:
+                    return 0  # Kein Unterscheidungsmerkmal -> 00000
+                elif max_val == 1:
+                    return 1  # Always 00001
                 elif max_val == 10:
                     return rng.randint(2, 10)  # 00002-00010
                 elif max_val == 100:
                     return rng.randint(11, 100)  # 00011-00100
                 else:
-                    return rng.randint(101, 99999)  # 00101-99999
-        return 1  # fallback
+                    return rng.randint(11, 99999)  # >=00011 (00011-99999)
+        return 0  # fallback to 'kein Unterscheidungsmerkmal'
 
     def get_person_reuse_count(self, rng: random.Random) -> int:
         """Get random person reuse count based on distribution."""
@@ -562,22 +565,34 @@ class IBANGenerator:
         """Generate a Wirtschafts-Identifikationsnummer (WID).
 
         Args:
-            is_legal_entity: True for legal entities (format: DE + 9 digits),
-                           False for natural persons (format: DE + 5-digit feature + 6 digits)
+            is_legal_entity: True for legal entities (format: DE + 9 digits, optionally '-' + 5-digit feature),
+                           False for natural persons (format: DE + 10 digits, optionally '-' + 5-digit feature)
 
         Returns:
             WID string
         """
         if is_legal_entity:
-            # Legal entities: "DE" + 9 digits
-            wid_number = self.rng.randint(100000000, 999999999)
-            return f"DE{wid_number}"
-        else:
-            # Natural persons: "DE" + distinguishing feature (5 digits) + 6 more digits
+            # Legal entities: "DE" + 9 random digits, optionally '-' + distinguishing feature (5 digits)
+            # If the distinguishing feature equals 00000 (kein Unterscheidungsmerkmal), omit the suffix entirely.
+            base_number = self.rng.randint(
+                0, 999999999
+            )  # 9 digits, allow leading zeros
             feature = self.config.get_wid_distinguishing_feature(self.rng)
+            if feature == 0:
+                return f"DE{base_number:09d}"
             feature_str = f"{feature:05d}"  # Pad to 5 digits
-            remaining_digits = self.rng.randint(100000, 999999)  # 6 digits
-            return f"DE{feature_str}{remaining_digits}"
+            return f"DE{base_number:09d}-{feature_str}"
+        else:
+            # Natural persons: "DE" + 10 random digits, optionally '-' + distinguishing feature (5 digits)
+            # If the distinguishing feature equals 00000 (kein Unterscheidungsmerkmal), omit the suffix entirely.
+            base_number = self.rng.randint(
+                0, 9999999999
+            )  # 10 digits, allow leading zeros
+            feature = self.config.get_wid_distinguishing_feature(self.rng)
+            if feature == 0:
+                return f"DE{base_number:010d}"
+            feature_str = f"{feature:05d}"  # Pad to 5 digits
+            return f"DE{base_number:010d}-{feature_str}"
 
     def _get_or_create_person(
         self, force_economically_active: bool = False

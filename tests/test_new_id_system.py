@@ -89,9 +89,21 @@ def test_basic_id_system():
                 assert holder.wid.startswith("DE"), (
                     f"WID wrong format for {holder.full_name}: {holder.wid}"
                 )
-                assert len(holder.wid) == 13, (
-                    f"WID wrong length for {holder.full_name}: {holder.wid}"
+                # New WID format for natural persons: DE + 10 digits, optionally '-' + 5-digit feature
+                assert holder.wid.startswith("DE"), (
+                    f"WID wrong format for {holder.full_name}: {holder.wid}"
                 )
+                assert (
+                    "-" not in holder.wid
+                    and len(holder.wid) == 12
+                    and holder.wid[2:].isdigit()
+                ) or (
+                    "-" in holder.wid
+                    and len(holder.wid.split("-")[0]) == 12
+                    and holder.wid.split("-")[0][2:].isdigit()
+                    and len(holder.wid.split("-")[1]) == 5
+                    and holder.wid.split("-")[1].isdigit()
+                ), f"WID wrong format for {holder.full_name}: {holder.wid}"
                 economically_active_count += 1
             else:
                 assert holder.wid is None, (
@@ -144,8 +156,8 @@ def test_wid_feature_distribution():
             holder = record.account_holders[0]
             wid = holder.wid
 
-            # Extract feature from WID (positions 2-6, 5 digits)
-            feature_str = wid[2:7]
+            # Extract feature from WID: 5 digits after hyphen
+            feature_str = wid.split("-")[1]
             feature = int(feature_str)
 
             print(f"{holder.full_name}: WID {wid}, Feature: {feature:05d}")
@@ -214,11 +226,19 @@ def test_legal_entity_forcing():
             print(f"  Legal Entity: {holder.name}")
             print(f"  WID: {holder.wid}")
 
-            # Verify legal entity WID format
+            # Verify legal entity WID format: 'DE' + 9 digits, optionally '-' + 5-digit feature
             assert holder.wid.startswith("DE"), (
                 f"Legal entity WID wrong format: {holder.wid}"
             )
-            assert len(holder.wid) == 11, f"Legal entity WID wrong length: {holder.wid}"
+            wid = holder.wid
+            base, sep, feature = wid.partition("-")
+            assert (sep == "" and len(wid) == 11 and wid[2:].isdigit()) or (
+                sep == "-"
+                and len(base) == 11
+                and base[2:].isdigit()
+                and len(feature) == 5
+                and feature.isdigit()
+            ), f"Legal entity WID wrong format: {holder.wid}"
 
             # Legal entities cannot have beneficiaries
             assert len(record.beneficiaries) == 0, (
