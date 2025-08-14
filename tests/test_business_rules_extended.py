@@ -57,7 +57,9 @@ def test_beneficiaries_can_be_legal_entities_when_configured():
             legal_entity_probability=0.0,  # ensure holders are natural persons
             beneficiary_legal_entity_probability=1.0,  # force legal entity beneficiaries
             account_holder_distribution=[(1, 1.0)],  # one holder
-            beneficial_owner_distribution=[(3, 1.0)],  # up to 3 beneficiaries per account
+            beneficial_owner_distribution=[
+                (3, 1.0)
+            ],  # up to 3 beneficiaries per account
         )
         gen = IBANGenerator(path, seed=101, config=cfg)
         recs = gen.generate_ibans(8)
@@ -70,7 +72,9 @@ def test_beneficiaries_can_be_legal_entities_when_configured():
             assert len(rec.beneficiaries) <= 3
             # LegalEntity WID format: DE + 9 digits -> len 11
             for b in rec.beneficiaries:
-                assert b.wid.startswith("DE") and len(b.wid) == 11 and b.wid[2:].isdigit()
+                assert (
+                    b.wid.startswith("DE") and len(b.wid) == 11 and b.wid[2:].isdigit()
+                )
     finally:
         if os.path.exists(path):
             os.unlink(path)

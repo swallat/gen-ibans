@@ -39,21 +39,39 @@ class TestOutputFormatter(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        person1 = PersonalInfo("Max", "Mustermann", "Musterstraße 1", "Berlin", "10115", "12345678901", "DE0000112345", True)
-        person2 = PersonalInfo("Anna", "Schmidt", "Hauptstraße 42", "München", "80331", "98765432109", None, False)
+        person1 = PersonalInfo(
+            "Max",
+            "Mustermann",
+            "Musterstraße 1",
+            "Berlin",
+            "10115",
+            "12345678901",
+            "DE0000112345",
+            True,
+        )
+        person2 = PersonalInfo(
+            "Anna",
+            "Schmidt",
+            "Hauptstraße 42",
+            "München",
+            "80331",
+            "98765432109",
+            None,
+            False,
+        )
 
         self.test_ibans = [
             IBANRecord(
                 "DE89370400440532013000",
                 BankInfo("37040044", "COBADEFFXXX", "Commerzbank"),
                 [person1],  # account_holders as list
-                []  # beneficiaries as empty list
+                [],  # beneficiaries as empty list
             ),
             IBANRecord(
                 "DE02120300000000202051",
                 BankInfo("12030000", "BYLADEM1XXX", "Deutsche Bank"),
                 [person2],  # account_holders as list
-                []  # beneficiaries as empty list
+                [],  # beneficiaries as empty list
             ),
         ]
 

@@ -26,7 +26,12 @@ SOFTWARE.
 import tempfile
 import os
 
-from gen_ibans.iban_generator import IBANGenerator, GeneratorConfig, PersonalInfo, LegalEntity
+from gen_ibans.iban_generator import (
+    IBANGenerator,
+    GeneratorConfig,
+    PersonalInfo,
+    LegalEntity,
+)
 
 
 def _csv_one_bank() -> str:
@@ -45,7 +50,9 @@ def test_legal_entity_has_no_beneficiaries():
     try:
         cfg = GeneratorConfig(
             legal_entity_probability=1.0,
-            beneficial_owner_distribution=[(10, 1.0)],  # even if requested, legal entities must block beneficiaries
+            beneficial_owner_distribution=[
+                (10, 1.0)
+            ],  # even if requested, legal entities must block beneficiaries
         )
         gen = IBANGenerator(path, seed=7, config=cfg)
         records = gen.generate_ibans(5)
@@ -59,6 +66,7 @@ def test_legal_entity_has_no_beneficiaries():
 
 
 essential_counts = 8
+
 
 def test_wid_present_only_when_economically_active():
     path = _csv_one_bank()
