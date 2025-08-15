@@ -28,6 +28,7 @@ import click
 import csv
 import json
 import sys
+import time
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import List, Optional
@@ -835,7 +836,49 @@ def main(
         # Generate IBANs
         if not clean:
             click.echo(style(f"Generating {count} IBANs...", fg="cyan"), err=True)
-        ibans = generator.generate_ibans(count)
+        # Animated progress on stderr (TTY only) to avoid cluttering output
+        show_progress = sys.stderr.isatty() and not clean
+        # Dot-style spinner frames (braille dots)
+        spinner_frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
+        ibans = []
+        last_msg_len = 0
+        bar_width = 24
+        start_time = time.time()
+
+        def _fmt_eta(seconds: float) -> str:
+            if seconds is None or seconds != seconds or seconds == float('inf'):
+                return "--:--"
+            seconds = max(0, int(seconds))
+            h = seconds // 3600
+            m = (seconds % 3600) // 60
+            s = seconds % 60
+            if h > 0:
+                return f"{h:02d}:{m:02d}:{s:02d}"
+            return f"{m:02d}:{s:02d}"
+
+        for i in range(count):
+            ibans.append(generator.generate_iban())
+            if show_progress:
+                done = i + 1
+                elapsed = max(1e-6, time.time() - start_time)
+                rate = done / elapsed
+                remaining = (count - done) / rate if rate > 0 else None
+                percent = int(done * 100 / count)
+                filled = int(bar_width * done / count)
+                bar = "#" * filled + "-" * (bar_width - filled)
+                frame = spinner_frames[i % len(spinner_frames)]
+                msg = f"{frame} [{bar}] {percent:3d}% {done}/{count} ETA: {_fmt_eta(remaining)}"
+                # Carriage return and flush for in-place update
+                sys.stderr.write("\r" + msg)
+                # Pad with spaces if previous message was longer
+                if len(msg) < last_msg_len:
+                    sys.stderr.write(" " * (last_msg_len - len(msg)))
+                sys.stderr.flush()
+                last_msg_len = len(msg)
+        if show_progress:
+            # Clear the progress line
+            sys.stderr.write("\r" + " " * last_msg_len + "\r")
+            sys.stderr.flush()
 
         # Determine what information to include
         include_personal_info = not (no_personal_info or iban_only)

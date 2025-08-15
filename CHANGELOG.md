@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- CLI: Progress indicator wording updated — replaced "Restzeit" with "ETA" in the generation progress message.
+
 ## [2.1.1] - 2025-08-14
 
 ### Changed
