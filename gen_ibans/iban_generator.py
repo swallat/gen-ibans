@@ -257,7 +257,24 @@ class GeneratorConfig:
         return 0  # fallback to 'kein Unterscheidungsmerkmal'
 
     def get_person_reuse_count(self, rng: random.Random) -> int:
-        """Get random person reuse count based on distribution."""
+        """Sample the planned max_uses for a base person from a distribution.
+
+        Definition of max_uses:
+        - We interpret person_reuse_distribution as a list of buckets of the
+          form (max_count, probability). Probabilities should sum to ~1.0.
+        - First, we pick a bucket according to its probability.
+        - Then we uniformly sample an integer in the inclusive range
+          [1, max_count]. The sampled value is the person's planned total
+          number of uses (max_uses) across the dataset.
+        - A value of 1 means the person will be used exactly once (no reuse).
+
+        Example with default distribution:
+        [(1, 0.8), (2, 0.1), (5, 0.05), (15, 0.03), (50, 0.019), (200, 0.001)]
+        - 80% of people get max_uses=1 (no reuse)
+        - 10% of people get max_uses uniformly in [1..2]
+        - 5% of people get max_uses uniformly in [1..5]
+        - ... and so on, creating a realistic long tail.
+        """
         rand_val = rng.random()
         cumulative = 0.0
         for max_count, probability in self.person_reuse_distribution:
@@ -306,7 +323,11 @@ class IBANGenerator:
 
             seed = int(time.time() * 1000000) % (2**32)
         self.seed = seed
+        # Use Python's random.Random, which implements the Mersenne Twister (MT19937) PRNG.
+        # This provides high-quality, fast pseudo-random numbers suitable for simulation/testing.
+        # Note: This is NOT cryptographically secure; for crypto use cases prefer secrets.SystemRandom.
         self.rng = random.Random(seed)
+        # Seed Faker with the same seed to make generated personal data deterministic as well.
         self.faker = Faker("de_DE")
         self.faker.seed_instance(seed)
 
@@ -605,6 +626,12 @@ class IBANGenerator:
         Returns:
             PersonalInfo object that may be reused from pool or newly created
         """
+        # Prune exhausted entries to avoid unbounded memory growth
+        if self.person_pool:
+            self.person_pool = [
+                p for p in self.person_pool if p["current_uses"] < p["max_uses"]
+            ]
+
         # Try to find an available person from the pool
         for person_entry in self.person_pool:
             if person_entry["current_uses"] < person_entry["max_uses"]:
@@ -684,7 +711,6 @@ class IBANGenerator:
             "base_person": base_person,
             "max_uses": max_uses,
             "current_uses": 1,  # This first use
-            "variants": [],
         }
         self.person_pool.append(person_entry)
 

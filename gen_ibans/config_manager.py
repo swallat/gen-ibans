@@ -99,6 +99,8 @@ class CLISectionModel(BaseModel):  # type: ignore[misc]
     no_bank_info: bool = False
     clean: bool = False
     no_color: bool = False
+    # Field selection: list of fields to include in output (overrides other include/exclude flags if set)
+    fields: Optional[list[str]] = None
     # Optional regex filters
     filter_bank_name: Optional[str] = None
     filter_bic: Optional[str] = None
@@ -313,6 +315,10 @@ def default_config_toml() -> str:
         "# Variante: mehr hohe Merkmale\n"
         "# wid_feature_distribution = [[0, 0.50], [1, 0.20], [10, 0.29], [99999, 0.01]]\n\n"
         "# Wiederverwendung von Personen (wie oft dieselbe Person vorkommt) als [max_anzahl, wahrscheinlichkeit].\n"
+        "# Definition: Zuerst wird ein Bucket gemäß der Wahrscheinlichkeit gewählt.\n"
+        "# Anschließend wird eine ganze Zahl gleichverteilt im Intervall [1..max_anzahl] gezogen.\n"
+        "# Diese Zahl ist die geplante Gesamtanzahl an Verwendungen (max_uses) der Person.\n"
+        "# Hinweis: 1 bedeutet keine Wiederverwendung (die Person kommt genau einmal vor).\n"
         "person_reuse_distribution = [[1, 0.8], [2, 0.1], [5, 0.05], [15, 0.03], [50, 0.019], [200, 0.001]]\n"
         "# Variante: mehr Wiederverwendung im Long Tail\n"
         "# person_reuse_distribution = [[1, 0.7], [2, 0.15], [5, 0.07], [15, 0.05], [50, 0.028], [200, 0.002]]\n"
@@ -348,6 +354,12 @@ def default_config_toml() -> str:
         "clean = false\n"
         "# Farbige Ausgabe deaktivieren.\n"
         "no_color = false\n"
+        "# Auswahl der auszugebenden Felder (optional). Liste von Strings; überschreibt iban_only/no_* Flags.\n"
+        "# Unterstützt: iban, bank_name, bic, blz, holders, beneficiaries\n"
+        "# Beispiel: nur IBANs ausgeben\n"
+        '# fields = ["iban"]\n'
+        "# Beispiel: IBAN und BIC\n"
+        '# fields = ["iban", "bic"]\n'
         "#\n"
         "# Regex-Filter für Bankenliste (optional). CLI-Flags überschreiben diese Werte.\n"
         "# Beachte: filter_bank_name und filter_bic sind case-insensitive; filter_blz ist exakt.\n"
