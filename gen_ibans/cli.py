@@ -33,6 +33,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import List, Optional
 from click_option_group import optgroup
+import math
 
 from .iban_generator import IBANGenerator, IBANRecord, GeneratorConfig, LegalEntity
 from .downloader import BundesbankDownloader
@@ -860,7 +861,8 @@ def main(
             ibans.append(generator.generate_iban())
             if show_progress:
                 done = i + 1
-                elapsed = max(1e-6, time.time() - start_time)
+                MIN_ELAPSED_TIME = 1e-6
+                elapsed = max(MIN_ELAPSED_TIME, time.time() - start_time)
                 rate = done / elapsed
                 remaining = (count - done) / rate if rate > 0 else None
                 percent = int(done * 100 / count)
