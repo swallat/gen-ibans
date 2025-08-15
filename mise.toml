@@ -17,3 +17,19 @@ uv = "latest"
 description = "Install dependencies"
 alias = "i"
 run = "uv sync"
+
+[tasks.lint]
+description = "Ruff Lint-Check über das gesamte Projekt ausführen"
+alias = "lc"
+run = [
+    "uv run ruff check .",
+    "uv run ruff format --check .",
+]
+
+[tasks.lint-fix]
+description = "Ruff Auto-Fix (und Formatierung) über das gesamte Projekt ausführen"
+alias = "lf"
+run = [
+    "uv run ruff format .",
+    "uv run ruff check --fix ."
+]

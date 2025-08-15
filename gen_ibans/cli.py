@@ -839,14 +839,14 @@ def main(
         # Animated progress on stderr (TTY only) to avoid cluttering output
         show_progress = sys.stderr.isatty() and not clean
         # Dot-style spinner frames (braille dots)
-        spinner_frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
+        spinner_frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
         ibans = []
         last_msg_len = 0
         bar_width = 24
         start_time = time.time()
 
         def _fmt_eta(seconds: float) -> str:
-            if seconds is None or seconds != seconds or seconds == float('inf'):
+            if seconds is None or seconds != seconds or seconds == float("inf"):
                 return "--:--"
             seconds = max(0, int(seconds))
             h = seconds // 3600
