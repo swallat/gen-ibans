@@ -59,13 +59,53 @@ class OutputFormatter:
     """Handles different output formats for generated IBANs."""
 
     @staticmethod
+    def _field_value(record: IBANRecord, field: str) -> str:
+        field = field.strip().lower()
+        if field == "iban":
+            return record.iban
+        elif field in ("bank_name", "bank-name", "bank"):
+            return record.bank.name
+        elif field == "bic":
+            return record.bank.bic
+        elif field in ("blz", "bank_code", "bankleitzahl", "code"):
+            return record.bank.bankleitzahl
+        elif field == "holders":
+            return "; ".join(
+                (
+                    f"{h.name} (Legal Entity, WID: {h.wid})"
+                    if isinstance(h, LegalEntity)
+                    else f"{h.full_name} (Tax-ID: {h.tax_id}{', WID: ' + h.wid if getattr(h, 'wid', None) else ''})"
+                )
+                for h in record.account_holders
+            )
+        elif field == "beneficiaries":
+            return (
+                "; ".join(
+                    (
+                        f"{b.name} (Legal Entity, WID: {b.wid})"
+                        if isinstance(b, LegalEntity)
+                        else f"{b.full_name} (Tax-ID: {b.tax_id}{', WID: ' + b.wid if getattr(b, 'wid', None) else ''})"
+                    )
+                    for b in record.beneficiaries
+                )
+                or "None"
+            )
+        else:
+            return ""
+
+    @staticmethod
     def format_stdout(
         ibans: List[IBANRecord],
         include_bank_info: bool = True,
         include_personal_info: bool = True,
+        fields: Optional[list[str]] = None,
     ) -> None:
         """Output IBANs to STDOUT."""
         for record in ibans:
+            if fields:
+                values = [OutputFormatter._field_value(record, f) for f in fields]
+                print(" | ".join(v for v in values if v is not None))
+                continue
             # Format account holders
             holders_str = []
             for holder in record.account_holders:
@@ -118,11 +158,18 @@ class OutputFormatter:
         include_bank_info: bool = True,
         include_personal_info: bool = True,
         clean: bool = False,
+        fields: Optional[list[str]] = None,
     ) -> None:
         """Output IBANs to a text file."""
         try:
             with open(output_path, "w", encoding="utf-8") as f:
                 for record in ibans:
+                    if fields:
+                        values = [
+                            OutputFormatter._field_value(record, fld) for fld in fields
+                        ]
+                        f.write(" | ".join(values) + "\n")
+                        continue
                     # Format account holders
                     holders_str = []
                     for holder in record.account_holders:
@@ -177,26 +224,40 @@ class OutputFormatter:
 
     @staticmethod
     def format_csv(
-        ibans: List[IBANRecord], output_path: str, clean: bool = False
+        ibans: List[IBANRecord],
+        output_path: str,
+        clean: bool = False,
+        fields: Optional[list[str]] = None,
     ) -> None:
         """Output IBANs to a CSV file."""
         try:
             with open(output_path, "w", newline="", encoding="utf-8") as f:
                 writer = csv.writer(f)
                 # Write header
-                writer.writerow(
-                    [
-                        "IBAN",
-                        "Account Holders",
-                        "Beneficial Owners",
-                        "Bank Name",
-                        "BIC",
-                        "Bank Code",
-                    ]
-                )
+                if fields:
+                    writer.writerow([fld for fld in fields])
+                else:
+                    writer.writerow(
+                        [
+                            "IBAN",
+                            "Account Holders",
+                            "Beneficial Owners",
+                            "Bank Name",
+                            "BIC",
+                            "Bank Code",
+                        ]
+                    )
 
                 # Write data
                 for record in ibans:
+                    if fields:
+                        writer.writerow(
+                            [
+                                OutputFormatter._field_value(record, fld)
+                                for fld in fields
+                            ]
+                        )
+                        continue
                     # Format account holders
                     holders_str = []
                     for holder in record.account_holders:
@@ -248,7 +309,10 @@ class OutputFormatter:
 
     @staticmethod
     def format_xml(
-        ibans: List[IBANRecord], output_path: str, clean: bool = False
+        ibans: List[IBANRecord],
+        output_path: str,
+        clean: bool = False,
+        fields: Optional[list[str]] = None,
     ) -> None:
         """Output IBANs to an XML file."""
         try:
@@ -256,6 +320,12 @@ class OutputFormatter:
 
             for record in ibans:
                 iban_elem = ET.SubElement(root, "account")
+                if fields:
+                    for fld in fields:
+                        ET.SubElement(
+                            iban_elem, fld
+                        ).text = OutputFormatter._field_value(record, fld)
+                    continue
                 ET.SubElement(iban_elem, "iban").text = record.iban
 
                 # Account holders
@@ -353,12 +423,22 @@ class OutputFormatter:
 
     @staticmethod
     def format_json(
-        ibans: List[IBANRecord], output_path: str, clean: bool = False
+        ibans: List[IBANRecord],
+        output_path: str,
+        clean: bool = False,
+        fields: Optional[list[str]] = None,
     ) -> None:
         """Output IBANs to a JSON file."""
         try:
             data = []
             for record in ibans:
+                if fields:
+                    # Build a flat dict with requested fields
+                    entry = {
+                        fld: OutputFormatter._field_value(record, fld) for fld in fields
+                    }
+                    data.append(entry)
+                    continue
                 # Account holders
                 holders_data = []
                 for holder in record.account_holders:
@@ -522,6 +602,14 @@ class ColoredHelpCommand(click.Command):
     help="Output only IBANs without bank information or personal data",
 )
 @click.option(
+    "--fields",
+    type=str,
+    help=(
+        "Comma-separated list of fields to include in output (overrides iban_only/no_*). "
+        "Supported fields: iban, bank_name, bic, blz, holders, beneficiaries"
+    ),
+)
+@click.option(
     "--no-personal-info",
     is_flag=True,
     help="Exclude personal information (names and addresses) from output",
@@ -658,6 +746,7 @@ def main(
     output: Path,
     no_echo: bool,
     iban_only: bool,
+    fields: Optional[str],
     no_personal_info: bool,
     no_bank_info: bool,
     clean: bool,
@@ -723,6 +812,7 @@ def main(
         output=output,
         no_echo=no_echo,
         iban_only=iban_only,
+        fields=fields,
         no_personal_info=no_personal_info,
         no_bank_info=no_bank_info,
         clean=clean,
@@ -841,7 +931,6 @@ def main(
         show_progress = sys.stderr.isatty() and not clean
         # Dot-style spinner frames (braille dots)
         spinner_frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
-        ibans = []
         last_msg_len = 0
         bar_width = 24
         start_time = time.time()
@@ -857,71 +946,371 @@ def main(
                 return f"{h:02d}:{m:02d}:{s:02d}"
             return f"{m:02d}:{s:02d}"
 
-        for i in range(count):
-            ibans.append(generator.generate_iban())
-            if show_progress:
-                done = i + 1
-                MIN_ELAPSED_TIME = 1e-6
-                elapsed = max(MIN_ELAPSED_TIME, time.time() - start_time)
-                rate = done / elapsed
-                remaining = (count - done) / rate if rate > 0 else None
-                percent = int(done * 100 / count)
-                filled = int(bar_width * done / count)
-                bar = "#" * filled + "-" * (bar_width - filled)
-                frame = spinner_frames[i % len(spinner_frames)]
-                msg = f"{frame} [{bar}] {percent:3d}% {done}/{count} ETA: {_fmt_eta(remaining)}"
-                # Carriage return and flush for in-place update
-                sys.stderr.write("\r" + msg)
-                # Pad with spaces if previous message was longer
-                if len(msg) < last_msg_len:
-                    sys.stderr.write(" " * (last_msg_len - len(msg)))
-                sys.stderr.flush()
-                last_msg_len = len(msg)
-        if show_progress:
-            # Clear the progress line
-            sys.stderr.write("\r" + " " * last_msg_len + "\r")
-            sys.stderr.flush()
-
-        # Determine what information to include
+        # Determine what information to include (before generation loop)
         include_personal_info = not (no_personal_info or iban_only)
         include_bank_info = not (no_bank_info or iban_only)
-
-        # Always output to stdout unless --no-echo is specified and --output is given
+        fields_list: Optional[list[str]] = merged.get("fields")
         output_to_stdout = not (no_echo and output)
 
-        # Output results to stdout (all formats) or files
-        if output_to_stdout:
-            _output_results_stdout(
-                ibans,
-                output_format=output_format,
-                include_bank_info=include_bank_info,
-                include_personal_info=include_personal_info,
-            )
+        # Prepare file writers if output file is specified (streaming, no full in-memory list)
+        file_handle = None
+        csv_writer = None
+        json_first = True
+        try:
+            if output:
+                if not output_format:
+                    raise click.BadParameter(
+                        "--format is required when --output is specified"
+                    )
+                out_path = str(output)
+                if output_format == "txt":
+                    file_handle = open(out_path, "w", encoding="utf-8")
+                elif output_format == "csv":
+                    file_handle = open(out_path, "w", newline="", encoding="utf-8")
+                    csv_writer = csv.writer(file_handle)
+                    if fields_list:
+                        csv_writer.writerow([fld for fld in fields_list])
+                    else:
+                        csv_writer.writerow(
+                            [
+                                "IBAN",
+                                "Account Holders",
+                                "Beneficial Owners",
+                                "Bank Name",
+                                "BIC",
+                                "Bank Code",
+                            ]
+                        )
+                elif output_format == "json":
+                    file_handle = open(out_path, "w", encoding="utf-8")
+                    file_handle.write("[")
+                    json_first = True
+                elif output_format == "xml":
+                    file_handle = open(out_path, "w", encoding="utf-8")
+                    file_handle.write(
+                        '<?xml version="1.0" encoding="UTF-8"?>\n<accounts>\n'
+                    )
+                else:
+                    raise click.BadParameter(f"Unsupported format: {output_format}")
 
-        if output:
-            if not output_format:
-                raise click.BadParameter(
-                    "--format is required when --output is specified"
-                )
-            formatter = OutputFormatter()
-            if output_format == "txt":
-                formatter.format_txt(
-                    ibans, str(output), include_bank_info, include_personal_info, clean
-                )
-            elif output_format == "csv":
-                formatter.format_csv(ibans, str(output), clean)
-            elif output_format == "xml":
-                formatter.format_xml(ibans, str(output), clean)
-            elif output_format == "json":
-                formatter.format_json(ibans, str(output), clean)
+            # Generation loop with streaming output
+            for i in range(count):
+                record = generator.generate_iban()
 
-        if not clean:
-            click.echo(
-                style(
-                    f"Successfully generated {len(ibans)} IBANs", fg="green", bold=True
-                ),
-                err=True,
-            )
+                # STDOUT streaming (if enabled)
+                if output_to_stdout:
+                    if output_format is None or output_format == "txt":
+                        # Plain or TXT-like line output
+                        if fields_list:
+                            values = [
+                                OutputFormatter._field_value(record, f)
+                                for f in fields_list
+                            ]
+                            print(" | ".join(v for v in values if v is not None))
+                        else:
+                            holders_display = "; ".join(
+                                _format_person_inline(h) for h in record.account_holders
+                            )
+                            beneficiaries_strs = [
+                                _format_person_inline(b) for b in record.beneficiaries
+                            ]
+                            beneficiaries_display = (
+                                "; ".join(beneficiaries_strs)
+                                if beneficiaries_strs
+                                else "None"
+                            )
+                            if include_personal_info and include_bank_info:
+                                print(
+                                    f"{record.iban} | Holders: {holders_display} | Beneficiaries: {beneficiaries_display} | {record.bank.name} | {record.bank.bic} | {record.bank.bankleitzahl}"
+                                )
+                            elif include_personal_info:
+                                print(
+                                    f"{record.iban} | Holders: {holders_display} | Beneficiaries: {beneficiaries_display}"
+                                )
+                            elif include_bank_info:
+                                print(
+                                    f"{record.iban} | {record.bank.name} | {record.bank.bic} | {record.bank.bankleitzahl}"
+                                )
+                            else:
+                                print(record.iban)
+                    elif output_format == "csv":
+                        if fields_list:
+                            if i == 0:
+                                # print header
+                                print(",".join(fields_list))
+                            values = [
+                                OutputFormatter._field_value(record, f)
+                                for f in fields_list
+                            ]
+                            print(
+                                ",".join(
+                                    '"' + v.replace('"', '""') + '"' for v in values
+                                )
+                            )
+                        else:
+                            if i == 0:
+                                print(
+                                    "IBAN,Account Holders,Beneficial Owners,Bank Name,BIC,Bank Code"
+                                )
+                            holders_csv = "; ".join(
+                                _format_person_inline(h) for h in record.account_holders
+                            )
+                            beneficiaries_strs = [
+                                _format_person_inline(b) for b in record.beneficiaries
+                            ]
+                            beneficiaries_csv = (
+                                "; ".join(beneficiaries_strs)
+                                if beneficiaries_strs
+                                else "None"
+                            )
+                            print(
+                                f'"{record.iban}","{holders_csv}","{beneficiaries_csv}","{record.bank.name}","{record.bank.bic}","{record.bank.bankleitzahl}"'
+                            )
+                    elif output_format == "json":
+                        # Stream ND-JSON to stdout as regular JSON array chunks
+                        entry_obj = None
+                        if fields_list:
+                            entry_obj = {
+                                f: OutputFormatter._field_value(record, f)
+                                for f in fields_list
+                            }
+                        else:
+                            entry_obj = {
+                                "iban": record.iban,
+                                "account_holders": [
+                                    _person_to_dict(h) for h in record.account_holders
+                                ],
+                                "beneficiaries": [
+                                    _person_to_dict(b) for b in record.beneficiaries
+                                ],
+                                "bank": {
+                                    "name": record.bank.name,
+                                    "bic": record.bank.bic,
+                                    "code": record.bank.bankleitzahl,
+                                },
+                            }
+                        # For stdout we can print the object per line (JSONL) to avoid buffering
+                        print(json.dumps(entry_obj, ensure_ascii=False))
+                    elif output_format == "xml":
+                        # For stdout, print a minimal XML per record (not a full valid XML doc), to avoid buffering
+                        # Users requesting XML to stdout should redirect to file; we keep memory low here
+                        iban_elem = ET.Element("account")
+                        if fields_list:
+                            for f in fields_list:
+                                ET.SubElement(
+                                    iban_elem, f
+                                ).text = OutputFormatter._field_value(record, f)
+                        else:
+                            ET.SubElement(iban_elem, "iban").text = record.iban
+                            holders_elem = ET.SubElement(iban_elem, "account_holders")
+                            for holder in record.account_holders:
+                                _add_person_xml(holders_elem, "holder", holder)
+                            beneficiaries_elem = ET.SubElement(
+                                iban_elem, "beneficiaries"
+                            )
+                            for beneficiary in record.beneficiaries:
+                                _add_person_xml(
+                                    beneficiaries_elem, "beneficiary", beneficiary
+                                )
+                            bank_elem = ET.SubElement(iban_elem, "bank")
+                            ET.SubElement(bank_elem, "name").text = record.bank.name
+                            ET.SubElement(bank_elem, "bic").text = record.bank.bic
+                            ET.SubElement(
+                                bank_elem, "code"
+                            ).text = record.bank.bankleitzahl
+                        print(ET.tostring(iban_elem, encoding="unicode"))
+
+                # FILE streaming (if enabled)
+                if file_handle is not None:
+                    if output_format == "txt":
+                        if fields_list:
+                            values = [
+                                OutputFormatter._field_value(record, f)
+                                for f in fields_list
+                            ]
+                            file_handle.write(" | ".join(values) + "\n")
+                        else:
+                            holders_display = "; ".join(
+                                _format_person_inline(h) for h in record.account_holders
+                            )
+                            beneficiaries_strs = [
+                                _format_person_inline(b) for b in record.beneficiaries
+                            ]
+                            beneficiaries_display = (
+                                "; ".join(beneficiaries_strs)
+                                if beneficiaries_strs
+                                else "None"
+                            )
+                            if include_personal_info and include_bank_info:
+                                file_handle.write(
+                                    f"{record.iban} | Holders: {holders_display} | Beneficiaries: {beneficiaries_display} | {record.bank.name} | {record.bank.bic} | {record.bank.bankleitzahl}\n"
+                                )
+                            elif include_personal_info:
+                                file_handle.write(
+                                    f"{record.iban} | Holders: {holders_display} | Beneficiaries: {beneficiaries_display}\n"
+                                )
+                            elif include_bank_info:
+                                file_handle.write(
+                                    f"{record.iban} | {record.bank.name} | {record.bank.bic} | {record.bank.bankleitzahl}\n"
+                                )
+                            else:
+                                file_handle.write(f"{record.iban}\n")
+                    elif output_format == "csv":
+                        if fields_list:
+                            csv_writer.writerow(
+                                [
+                                    OutputFormatter._field_value(record, f)
+                                    for f in fields_list
+                                ]
+                            )
+                        else:
+                            holders_csv = "; ".join(
+                                _format_person_inline(h) for h in record.account_holders
+                            )
+                            beneficiaries_strs = [
+                                _format_person_inline(b) for b in record.beneficiaries
+                            ]
+                            beneficiaries_csv = (
+                                "; ".join(beneficiaries_strs)
+                                if beneficiaries_strs
+                                else "None"
+                            )
+                            csv_writer.writerow(
+                                [
+                                    record.iban,
+                                    holders_csv,
+                                    beneficiaries_csv,
+                                    record.bank.name,
+                                    record.bank.bic,
+                                    record.bank.bankleitzahl,
+                                ]
+                            )
+                    elif output_format == "json":
+                        entry_obj = None
+                        if fields_list:
+                            entry_obj = {
+                                f: OutputFormatter._field_value(record, f)
+                                for f in fields_list
+                            }
+                        else:
+                            entry_obj = {
+                                "iban": record.iban,
+                                "account_holders": [
+                                    _person_to_dict(h) for h in record.account_holders
+                                ],
+                                "beneficiaries": [
+                                    _person_to_dict(b) for b in record.beneficiaries
+                                ],
+                                "bank": {
+                                    "name": record.bank.name,
+                                    "bic": record.bank.bic,
+                                    "code": record.bank.bankleitzahl,
+                                },
+                            }
+                        if not json_first:
+                            file_handle.write(",\n")
+                        else:
+                            file_handle.write("\n")
+                            json_first = False
+                        file_handle.write(
+                            json.dumps(entry_obj, ensure_ascii=False, indent=None)
+                        )
+                    elif output_format == "xml":
+                        # Build per-record XML element and write it out
+                        iban_elem = ET.Element("account")
+                        if fields_list:
+                            for f in fields_list:
+                                ET.SubElement(
+                                    iban_elem, f
+                                ).text = OutputFormatter._field_value(record, f)
+                        else:
+                            ET.SubElement(iban_elem, "iban").text = record.iban
+                            holders_elem = ET.SubElement(iban_elem, "account_holders")
+                            for holder in record.account_holders:
+                                _add_person_xml(holders_elem, "holder", holder)
+                            beneficiaries_elem = ET.SubElement(
+                                iban_elem, "beneficiaries"
+                            )
+                            for beneficiary in record.beneficiaries:
+                                _add_person_xml(
+                                    beneficiaries_elem, "beneficiary", beneficiary
+                                )
+                            bank_elem = ET.SubElement(iban_elem, "bank")
+                            ET.SubElement(bank_elem, "name").text = record.bank.name
+                            ET.SubElement(bank_elem, "bic").text = record.bank.bic
+                            ET.SubElement(
+                                bank_elem, "code"
+                            ).text = record.bank.bankleitzahl
+                        # Pretty printing per record is expensive; write compact to save time/memory
+                        file_handle.write(
+                            "  " + ET.tostring(iban_elem, encoding="unicode") + "\n"
+                        )
+
+                # Update progress after processing (so write timing is included)
+                if show_progress:
+                    done = i + 1
+                    MIN_ELAPSED_TIME = 1e-6
+                    elapsed = max(MIN_ELAPSED_TIME, time.time() - start_time)
+                    rate = done / elapsed
+                    remaining = (count - done) / rate if rate > 0 else None
+                    percent = int(done * 100 / count)
+                    filled = int(bar_width * done / count)
+                    bar = "#" * filled + "-" * (bar_width - filled)
+                    frame = spinner_frames[i % len(spinner_frames)]
+                    msg = f"{frame} [{bar}] {percent:3d}% {done}/{count} ETA: {_fmt_eta(remaining)}"
+                    sys.stderr.write("\r" + msg)
+                    if len(msg) < last_msg_len:
+                        sys.stderr.write(" " * (last_msg_len - len(msg)))
+                    sys.stderr.flush()
+                    last_msg_len = len(msg)
+
+            if show_progress:
+                sys.stderr.write("\r" + " " * last_msg_len + "\r")
+                sys.stderr.flush()
+
+            # Finalize file outputs
+            if file_handle is not None:
+                if output_format == "json":
+                    if not json_first:
+                        file_handle.write("\n")
+                    file_handle.write("]")
+                elif output_format == "xml":
+                    file_handle.write("</accounts>\n")
+                file_handle.close()
+                if not clean:
+                    if output_format == "csv":
+                        click.echo(
+                            style(f"IBANs written to CSV: {out_path}", fg="green"),
+                            err=True,
+                        )
+                    elif output_format == "xml":
+                        click.echo(
+                            style(f"IBANs written to XML: {out_path}", fg="green"),
+                            err=True,
+                        )
+                    elif output_format == "json":
+                        click.echo(
+                            style(f"IBANs written to JSON: {out_path}", fg="green"),
+                            err=True,
+                        )
+                    else:
+                        click.echo(
+                            style(f"IBANs written to: {out_path}", fg="green"), err=True
+                        )
+
+            if not clean:
+                click.echo(
+                    style(
+                        f"Successfully generated {count} IBANs", fg="green", bold=True
+                    ),
+                    err=True,
+                )
+        finally:
+            try:
+                if file_handle and not file_handle.closed:
+                    file_handle.close()
+            except Exception:
+                pass
 
     except Exception as e:
         raise click.ClickException(f"Error: {e}")
@@ -1026,6 +1415,7 @@ def _merge_defaults(
     output: Optional[Path],
     no_echo: bool,
     iban_only: bool,
+    fields: Optional[str],
     no_personal_info: bool,
     no_bank_info: bool,
     clean: bool,
@@ -1104,6 +1494,16 @@ def _merge_defaults(
             cli_cfg.get("no_color"), bool
         ):
             no_color = cli_cfg["no_color"]
+        # Fields selection: from config if not provided via CLI
+        if "fields" not in provided_params and cli_cfg.get("fields") is not None:
+            try:
+                cfg_fields = cli_cfg.get("fields")
+                if isinstance(cfg_fields, (list, tuple)):
+                    fields = [str(f).strip() for f in cfg_fields if str(f).strip()]
+                elif isinstance(cfg_fields, str):
+                    fields = cfg_fields
+            except Exception:
+                pass
         # Filters: allow from config if not provided on CLI
         if "filter_bank_name" not in provided_params and cli_cfg.get(
             "filter_bank_name"
@@ -1130,6 +1530,16 @@ def _merge_defaults(
         # Ignore config merge failures for non-generator settings
         pass
 
+    # Normalize fields value to a list[str]
+    normalized_fields: Optional[list[str]] = None
+    try:
+        if isinstance(fields, str):
+            normalized_fields = [f.strip() for f in fields.split(",") if f.strip()]
+        elif isinstance(fields, (list, tuple)):
+            normalized_fields = [str(f).strip() for f in fields if str(f).strip()]
+    except Exception:
+        normalized_fields = None
+
     return {
         "download_format": download_format,
         "force_download": force_download,
@@ -1148,6 +1558,7 @@ def _merge_defaults(
         "filter_bank_name": filter_bank_name,
         "filter_bic": filter_bic,
         "filter_blz": filter_blz,
+        "fields": normalized_fields,
     }
 
 
@@ -1490,15 +1901,20 @@ def _output_results_stdout(
     output_format: Optional[str],
     include_bank_info: bool,
     include_personal_info: bool,
+    fields: Optional[list[str]] = None,
 ) -> None:
     """Handle stdout output across supported formats (txt, csv, xml, json, or plain)."""
     formatter = OutputFormatter()
     if output_format is None:
-        formatter.format_stdout(ibans, include_bank_info, include_personal_info)
+        formatter.format_stdout(ibans, include_bank_info, include_personal_info, fields)
         return
 
     if output_format == "txt":
         for record in ibans:
+            if fields:
+                values = [OutputFormatter._field_value(record, f) for f in fields]
+                print(" | ".join(values))
+                continue
             holders_display = "; ".join(
                 _format_person_inline(h) for h in record.account_holders
             )
@@ -1524,23 +1940,41 @@ def _output_results_stdout(
             else:
                 print(record.iban)
     elif output_format == "csv":
-        print("IBAN,Account Holders,Beneficial Owners,Bank Name,BIC,Bank Code")
-        for record in ibans:
-            holders_csv = "; ".join(
-                _format_person_inline(h) for h in record.account_holders
-            )
-            beneficiaries_strs = [
-                _format_person_inline(b) for b in record.beneficiaries
-            ]
-            beneficiaries_csv = (
-                "; ".join(beneficiaries_strs) if beneficiaries_strs else "None"
-            )
+        if fields:
+            print(",".join(fields))
+            for record in ibans:
+                values = [OutputFormatter._field_value(record, f) for f in fields]
+                # naive CSV quoting
+                print(",".join('"' + v.replace('"', '""') + '"' for v in values))
+        else:
+            print("IBAN,Account Holders,Beneficial Owners,Bank Name,BIC,Bank Code")
+            for record in ibans:
+                holders_csv = "; ".join(
+                    _format_person_inline(h) for h in record.account_holders
+                )
+                beneficiaries_strs = [
+                    _format_person_inline(b) for b in record.beneficiaries
+                ]
+                beneficiaries_csv = (
+                    "; ".join(beneficiaries_strs) if beneficiaries_strs else "None"
+                )
 
-            print(
-                f'"{record.iban}","{holders_csv}","{beneficiaries_csv}","{record.bank.name}","{record.bank.bic}","{record.bank.bankleitzahl}"'
-            )
+                print(
+                    f'"{record.iban}","{holders_csv}","{beneficiaries_csv}","{record.bank.name}","{record.bank.bic}","{record.bank.bankleitzahl}"'
+                )
     elif output_format == "xml":
         import xml.dom.minidom
+
+        root = ET.Element("accounts")
+        for record in ibans:
+            iban_elem = ET.SubElement(root, "account")
+            if fields:
+                for f in fields:
+                    ET.SubElement(iban_elem, f).text = OutputFormatter._field_value(
+                        record, f
+                    )
+                continue
+            ET.SubElement(iban_elem, "iban").text = record.iban
 
         root = ET.Element("accounts")
         for record in ibans:
@@ -1565,6 +1999,10 @@ def _output_results_stdout(
     elif output_format == "json":
         data = []
         for record in ibans:
+            if fields:
+                entry = {f: OutputFormatter._field_value(record, f) for f in fields}
+                data.append(entry)
+                continue
             holders_data = [_person_to_dict(h) for h in record.account_holders]
             beneficiaries_data = [_person_to_dict(b) for b in record.beneficiaries]
             data.append(

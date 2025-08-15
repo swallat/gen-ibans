@@ -51,7 +51,7 @@ A powerful tool for generating valid German IBANs using real Bundesbank data wit
 
 - ✅ **Valid IBAN Generation**: Creates mathematically correct German IBANs with proper check digits
 - ✅ **Real Bank Data**: Uses authentic data from Deutsche Bundesbank (automatically downloaded or from local files)
-- ✅ **Deterministic Generation**: PRNG with seeding for reproducible results
+- ✅ **Deterministic Generation**: PRNG with seeding for reproducible results (Mersenne Twister MT19937)
 - ✅ **Automatic Data Download**: Fetches latest Bundesbank data automatically with smart caching
 - ✅ **Version Checking**: Automatically detects and downloads newer data versions
 - ✅ **Comprehensive CLI**: Full-featured command-line interface with extensive options
@@ -158,6 +158,36 @@ gen-ibans gen --count 5 --no-bank-info
 gen-ibans gen --count 5 --clean
 ```
 
+### Field Selection (--fields)
+
+Use --fields to precisely control which fields are emitted, independent of --iban-only/--no-*
+
+Supported fields: iban, bank_name, bic, blz, holders, beneficiaries
+
+Examples:
+
+```bash
+# Only IBANs (equivalent to --iban-only)
+gen-ibans gen --count 5 --fields "iban"
+
+# IBAN and BIC to CSV
+gen-ibans gen --count 10 --format csv --output out.csv --fields "iban,bic"
+
+# Custom TXT/stdout with selected fields
+gen-ibans gen --count 3 --fields "iban,bank_name,holders"
+
+# JSON with selected fields only
+gen-ibans gen --count 2 --format json --fields "iban,blz"
+```
+
+Config file alternative (config.toml):
+
+```toml
+[cli]
+# Overrides include/exclude flags when set
+fields = ["iban", "bic"]
+```
+
 ### Bank Filter Options
 
 Use powerful regex filters to constrain which banks are used for IBAN generation.
@@ -188,6 +218,12 @@ Notes:
 
 ### Advanced Options
 
+#### PRNG and Seeding
+- The generator uses Python's `random.Random`, which implements the Mersenne Twister (MT19937) PRNG.
+- You can provide a `--seed` to produce deterministic, reproducible results across runs and platforms.
+- If no seed is provided, a time-based seed is generated and printed in verbose outputs where applicable.
+- Note: MT19937 is not a cryptographically secure PRNG. For cryptographic use-cases, a CSPRNG like `secrets.SystemRandom` should be used; this tool focuses on simulation/testing realism, not cryptography.
+
 ```bash
 # Specify custom cache directory
 gen-ibans gen --count 5 --cache-dir /path/to/cache
@@ -217,6 +253,7 @@ gen-ibans gen --count 20 --seed 12345 --format json --output detailed.json --dow
 | `--no-bank-info` | Exclude bank information | *false* |
 | `--clean` | Suppress informational messages | *false* |
 | `--no-color` | Disable colored output (plain help/output) | *false* |
+| `--fields` | Comma-separated list of fields to output (iban, bank_name, bic, blz, holders, beneficiaries) | — |
 | `--download-format` | Format for auto-download: csv, txt, xml | csv |
 | `--force-download` | Force fresh download | *false* |
 | `--cache-dir` | Custom cache directory | *system temp* |
@@ -328,6 +365,24 @@ gen-ibans --config-dir ".\\mein-ordner" init
 Hinweise:
 - Fehlt die Datei, werden Bibliotheks-Defaults verwendet.
 - Werte aus der Datei werden automatisch geladen, können aber jederzeit per CLI-Option überschrieben werden (CLI > Datei > Defaults).
+
+### Wie ist max_uses definiert?
+
+In der Personen‑Wiederverwendung nutzt der Generator eine geplante Nutzungszahl pro Basis‑Person, genannt max_uses.
+So wird max_uses bestimmt:
+- Die Konfiguration person_reuse_distribution ist eine Liste von Paaren [max_anzahl, wahrscheinlichkeit].
+- Zuerst wird ein „Bucket“ gemäß der angegebenen Wahrscheinlichkeit ausgewählt.
+- Anschließend wird eine ganze Zahl gleichverteilt im Intervall [1..max_anzahl] gezogen. Genau dieser Wert ist max_uses, also die geplante Gesamtanzahl, wie oft eine Person über alle Datensätze hinweg vorkommen darf.
+- Der Wert 1 bedeutet: keine Wiederverwendung (die Person kommt genau einmal vor).
+
+Beispiel (Default):
+- person_reuse_distribution = [[1, 0.8], [2, 0.1], [5, 0.05], [15, 0.03], [50, 0.019], [200, 0.001]]
+  - 80% der Personen erhalten max_uses=1
+  - 10% der Personen erhalten einen Wert gleichverteilt aus [1..2]
+  - 5% der Personen erhalten einen Wert gleichverteilt aus [1..5]
+  - … und so weiter, was einen realistischen Long‑Tail erzeugt.
+
+Hinweis zur Performance/Speicher: Im Generator werden Erschöpfte Einträge (current_uses >= max_uses) regelmäßig aus dem Pool entfernt, um Speicherwachstum zu vermeiden.
 
 ### Python Module Usage
 
@@ -644,10 +699,10 @@ To create a new release of this project:
 1. **Create and push a version tag**:
    ```bash
    # Create a new tag for the next release (don’t run until after merge into master/main)
-   # Next planned release: v2.1.1
-  # When ready:
-  # git tag v2.1.1
-  # git push origin v2.1.1
+   # Next planned release: v2.1.2
+    # When ready:
+    # git tag v2.1.2
+    # git push origin v2.1.2
    ```
 
 2. **Automatic process**: Once you push a tag starting with `v*`, GitHub Actions will automatically:

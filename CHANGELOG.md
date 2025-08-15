@@ -7,8 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
 ### Changed
+
+### Fixed
+
+## [2.1.2] - 2025-08-15
+
+### Added
+- CLI: New `--fields` option to select specific fields for output across stdout and file formats; also configurable via `[cli].fields` in config.toml.
+
+### Changed
+- PRNG: Explicitly documented and standardized on Python's Mersenne Twister (MT19937) via `random.Random` for deterministic generation. Added code comments and README notes. No behavioral change to outputs besides clearer guarantees.
 - CLI: Progress indicator wording updated — replaced "Restzeit" with "ETA" in the generation progress message.
+- README/Config: Expanded documentation for PRNG behavior and detailed explanation of person reuse (max_uses) distribution.
+
+### Fixed
+- Generator: Regularly prunes exhausted person entries from the reuse pool to prevent unbounded memory growth during long runs.
 
 ## [2.1.1] - 2025-08-14
 
@@ -190,7 +206,8 @@ This initial release provides a complete, production-ready IBAN generator with:
 - Professional development infrastructure
 - Extensive documentation and setup automation
 
-[Unreleased]: https://github.com/swallat/gen-ibans/compare/v2.1.1...HEAD
+[Unreleased]: https://github.com/swallat/gen-ibans/compare/v2.1.2...HEAD
+[2.1.2]: https://github.com/swallat/gen-ibans/compare/v2.1.1...v2.1.2
 [2.1.1]: https://github.com/swallat/gen-ibans/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/swallat/gen-ibans/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/swallat/gen-ibans/compare/v1.0.1...v2.0.0
