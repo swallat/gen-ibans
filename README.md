@@ -803,11 +803,18 @@ python -m unittest discover tests -v
 Linting:
 
 ```bash
-# Check with ruff
-uv run ruff check
+# Mit mise Tasks (empfohlen)
+# Lint-Check mit Ruff
+mise run lint
 
-# Auto-fix where possible
+# Auto-Fix und Formatierung mit Ruff
+mise run lint-fix
+
+# Alternativ direkt mit uv
+uv run ruff check
 uv run ruff check --fix
+# Optional (falls genutzt): Formatierung anwenden
+uv run ruff format .
 ```
 
 ### Building and Installation
