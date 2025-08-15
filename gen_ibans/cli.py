@@ -846,7 +846,7 @@ def main(
         start_time = time.time()
 
         def _fmt_eta(seconds: float) -> str:
-            if seconds is None or seconds != seconds or seconds == float("inf"):
+            if seconds is None or math.isnan(seconds) or seconds == float("inf"):
                 return "--:--"
             seconds = max(0, int(seconds))
             h = seconds // 3600
