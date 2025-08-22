@@ -289,13 +289,20 @@ class GeneratorConfig:
 class BankInfo:
     """Represents bank information from the CSV."""
 
-    def __init__(self, bankleitzahl: str, bic: str, name: str):
+    def __init__(self, bankleitzahl: str, bic: str, name: str, method_code: Optional[str] = None):
         self.bankleitzahl = bankleitzahl
         self.bic = bic
         self.name = name
+        # Bundesbank Prüfzifferberechnungsmethode (account number check digit method)
+        # String like "00", "01", ..., or other codes per Bundesbank spec
+        self.method_code = method_code
 
     def __repr__(self):
-        return f"BankInfo(blz={self.bankleitzahl}, bic={self.bic}, name={self.name})"
+        return (
+            f"BankInfo(blz={self.bankleitzahl}, bic={self.bic}, name={self.name}"
+            + (f", method={self.method_code}" if self.method_code else "")
+            + ")"
+        )
 
 
 class IBANGenerator:
@@ -379,18 +386,64 @@ class IBANGenerator:
                     lines = content.splitlines()
                     reader = csv.reader(lines, delimiter=";")
 
-                    # Skip header
-                    next(reader)
+                    # Read and analyze header
+                    header = next(reader, None)
+                    method_idx = None
+                    bic_idx = 7
+                    name_idx = 2
+                    blz_idx = 0
+                    if header:
+                        header_norm = [h.strip().strip('"').lower() for h in header]
+                        # Common header name variants for the method column
+                        candidates = [
+                            "pruefziffmeth",
+                            "prüfzifferberechnungsmethode",
+                            "pruefzifferberechnungsmethode",
+                            "pruefziffer-berechnungsverfahren",
+                            "prüfziffer-berechnungsverfahren",
+                            "pruefziffer",
+                            "prüfziffer",
+                            "pz_meth",
+                            "pzmethod",
+                        ]
+                        for cand in candidates:
+                            if cand in header_norm:
+                                method_idx = header_norm.index(cand)
+                                break
+                        # Try to detect BIC/name/BLZ columns robustly too
+                        # Prefer 'Bezeichnung' as the bank name; fall back to 'Name', then 'Kurzbezeichnung/Kurzbez'
+                        bezeichnung_idx = None
+                        fallback_name_idx = None
+                        for i, col in enumerate(header_norm):
+                            if col == "bic":
+                                bic_idx = i
+                            elif col == "bezeichnung":
+                                bezeichnung_idx = i
+                            elif col == "name":
+                                # remember but don't override Bezeichnung if present
+                                fallback_name_idx = i
+                            elif col in ("kurzbezeichnung", "kurzbez"):
+                                if fallback_name_idx is None:
+                                    fallback_name_idx = i
+                            elif col in ("bankleitzahl", "blz"):
+                                blz_idx = i
+                        if bezeichnung_idx is not None:
+                            name_idx = bezeichnung_idx
+                        elif fallback_name_idx is not None:
+                            name_idx = fallback_name_idx
 
                     for row in reader:
-                        if len(row) >= 8:
-                            bankleitzahl = row[0].strip('"')
-                            bic = row[7].strip('"')
-                            name = row[2].strip('"')
+                        if len(row) > max(bic_idx, name_idx, blz_idx):
+                            bankleitzahl = row[blz_idx].strip('"')
+                            bic = row[bic_idx].strip('"')
+                            name = row[name_idx].strip('"')
+                            method_code = None
+                            if method_idx is not None and len(row) > method_idx:
+                                method_code = row[method_idx].strip('"') or None
 
                             # Only include banks with valid BIC codes
                             if bic and len(bic) >= 8:
-                                self.banks.append(BankInfo(bankleitzahl, bic, name))
+                                self.banks.append(BankInfo(bankleitzahl, bic, name, method_code))
 
                     # If we get here, the encoding worked
                     return
@@ -428,23 +481,30 @@ class IBANGenerator:
                             # 9-67: Bank name
                             # 68-102: Location
                             # 103-127: Short name
-                            # 128-138: Some code
-                            # 139+: BIC code
+                            # 128-138: PAN/some code
+                            # 139+: BIC code and possibly method
 
                             bankleitzahl = line[0:8].strip()
                             name = line[9:67].strip()
-                            # BIC appears to be at position 139, but let's find it dynamically
+
+                            # Extract method if present (just before the tail fields, depends on variant)
+                            method_code = None
 
                             # Extract BIC from the end part of the line
                             remaining = line[139:].strip() if len(line) > 139 else ""
                             bic = ""
 
-                            # Look for BIC pattern (11 characters, letters and digits)
+                            # Look for BIC pattern (8 to 11 uppercase letters/digits)
                             import re
 
                             bic_match = re.search(r"[A-Z0-9]{8,11}", remaining)
                             if bic_match:
                                 bic = bic_match.group()
+                                # Try to find a two-digit method immediately following the BIC in remaining text
+                                after_bic = remaining[bic_match.end():].strip()
+                                method_match = re.search(r"^(\d{2})", after_bic)
+                                if method_match:
+                                    method_code = method_match.group(1)
 
                             # Only include banks with valid BIC codes and bank codes
                             if (
@@ -454,7 +514,7 @@ class IBANGenerator:
                                 and bic
                                 and len(bic) >= 8
                             ):
-                                self.banks.append(BankInfo(bankleitzahl, bic, name))
+                                self.banks.append(BankInfo(bankleitzahl, bic, name, method_code))
 
                     # If we get here, the encoding worked
                     return
@@ -499,6 +559,7 @@ class IBANGenerator:
                     blz_elem = entry.find("ns:BLZ", namespace)
                     name_elem = entry.find("ns:Bezeichnung", namespace)
                     bic_elem = entry.find("ns:BIC", namespace)
+                    method_elem = entry.find("ns:PruefZiffMeth", namespace)
 
                     if (
                         blz_elem is not None
@@ -508,6 +569,9 @@ class IBANGenerator:
                         bankleitzahl = blz_elem.text.strip() if blz_elem.text else ""
                         name = name_elem.text.strip() if name_elem.text else ""
                         bic = bic_elem.text.strip() if bic_elem.text else ""
+                        method_code = (
+                            method_elem.text.strip() if method_elem is not None and method_elem.text else None
+                        )
 
                         # Only include banks with valid BIC codes and bank codes
                         if (
@@ -517,7 +581,7 @@ class IBANGenerator:
                             and bic
                             and len(bic) >= 8
                         ):
-                            self.banks.append(BankInfo(bankleitzahl, bic, name))
+                            self.banks.append(BankInfo(bankleitzahl, bic, name, method_code))
 
                 # If we get here, the encoding worked
                 return
@@ -565,11 +629,19 @@ class IBANGenerator:
         return f"{check_digits:02d}"
 
     def _generate_account_number(self) -> str:
-        """Generate a random 10-digit account number."""
-        # Generate a random number between 1 and 9999999999 (10 digits max)
-        # Avoid starting with 0 to ensure realistic account numbers
+        """Generate a random 10-digit account number (legacy behavior, not validated per bank)."""
         account_num = self.rng.randint(1, 9999999999)
         return f"{account_num:010d}"
+
+    def _generate_account_number_for_bank(self, bank: BankInfo) -> str:
+        """Generate a valid 10-digit account number for the given bank using its check-digit method."""
+        try:
+            from .methods import generate_valid_account
+        except Exception:
+            # Fallback to simple random if methods package is unavailable
+            account_num = self.rng.randint(1, 9999999999)
+            return f"{account_num:010d}"
+        return generate_valid_account(bank.bankleitzahl, self.rng, bank.method_code)
 
     def _generate_tax_id(self) -> str:
         """Generate a German Tax-ID (Steuer-ID) for natural persons.
@@ -784,8 +856,8 @@ class IBANGenerator:
         # Randomly select a bank
         bank = self.rng.choice(self.banks)
 
-        # Generate random account number
-        account_number = self._generate_account_number()
+        # Generate account number valid per bank's check-digit method (if available)
+        account_number = self._generate_account_number_for_bank(bank)
 
         # Calculate check digits
         check_digits = self._calculate_iban_check_digits(
