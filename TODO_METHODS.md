@@ -14,13 +14,15 @@ Dieses Dokument dient als Arbeitsgrundlage für kommende Sessions zur vollständ
 - Paket `gen_ibans.methods` mit:
   - Registry/Dekorator `register(method_code)`
   - Generische Erzeugung `generate_valid_account(blz, rng, method_code)` mit Validator-basiertem Retry.
-- Bereits vorhandene Files:
+- Bereits implementierte Files (mit Unit-Tests):
   - method_00.py (akzeptiert 10-stellige Kontonummern – korrekt für „00“/kein Check)
-  - method_09.py (Platzhalter)
-  - method_13.py (Platzhalter)
-  - method_24.py (Platzhalter)
+  - method_01.py (Mod11 mit Gewichten [2..10], 11→0, 10→invalid)
+  - method_09.py (Mod11 mit wiederholten Gewichten 2..7)
+  - method_10.py (einfaches Mod10 über die ersten 9 Stellen)
+  - method_13.py (Luhn/Mod10, letzte Stelle Prüfziffer)
+  - method_24.py (Mod11 mit Gewichten [2,3,4,5,6,7,8,9,2])
 - `IBANGenerator` nutzt `BankInfo.method_code` und generiert Kontonummern über `gen_ibans.methods.generate_valid_account`.
-- Tests der bestehenden Codebasis laufen grün (Stand dieser Session); methodenspezifische Detailtests fehlen noch (geplant).
+- Vollständige methodenspezifische Detailtests existieren für 00, 01, 09, 10, 13 und 24; gesamte Test-Suite grün.
 
 
 ## Zielbild
@@ -62,8 +64,8 @@ Empfehlung: Zuerst die am häufigsten auftretenden/verbreiteten „Standard“-V
 Startvorschlag (alphabetisch nach Code ist nicht sinnvoll – stattdessen nach Komplexität/Verbreitung):
 1) 01, 02, 03, 04 (häufige Basismethoden Mod 10/11 mit Gewichtungen) 
 2) 06, 07, 08 (weitere Varianten mit Sonderregeln)
-3) 09, 10, 11, 12, 13 (hier: 09/13 sind bereits Platzhalter – ersetzen!)
-4) 20er-Bereich (u. a. 24 bereits als Platzhalter – ersetzen)
+3) 09, 10, 11, 12, 13 (09, 10 und 13 sind bereits umgesetzt; 11/12 folgen)
+4) 20er-Bereich (24 ist bereits umgesetzt; übrige 20er bei Bedarf anschließend)
 5) Restliche Methoden inkl. Sonder-/Gruppenverfahren
 
 Hinweis: Exakte Reihenfolge kann nach tatsächlicher BLZ-Verteilung in realen Bundesbankdaten feinjustiert werden.
@@ -96,7 +98,7 @@ Hinweis: Exakte Reihenfolge kann nach tatsächlicher BLZ-Verteilung in realen Bu
 ## Geplante Dateien (Checkliste)
 - [x] gen_ibans/methods/__init__.py (Registry, Generator via Retry)
 - [x] gen_ibans/methods/method_00.py (kein Check)
-- [ ] gen_ibans/methods/method_01.py
+- [x] gen_ibans/methods/method_01.py
 - [ ] gen_ibans/methods/method_02.py
 - [ ] gen_ibans/methods/method_03.py
 - [ ] gen_ibans/methods/method_04.py
@@ -104,11 +106,11 @@ Hinweis: Exakte Reihenfolge kann nach tatsächlicher BLZ-Verteilung in realen Bu
 - [ ] gen_ibans/methods/method_06.py
 - [ ] gen_ibans/methods/method_07.py
 - [ ] gen_ibans/methods/method_08.py
-- [ ] gen_ibans/methods/method_09.py (Platzhalter ersetzen)
-- [ ] gen_ibans/methods/method_10.py
+- [x] gen_ibans/methods/method_09.py
+- [x] gen_ibans/methods/method_10.py
 - [ ] gen_ibans/methods/method_11.py
 - [ ] gen_ibans/methods/method_12.py
-- [ ] gen_ibans/methods/method_13.py (Platzhalter ersetzen)
+- [x] gen_ibans/methods/method_13.py
 - [ ] gen_ibans/methods/method_14.py
 - [ ] gen_ibans/methods/method_15.py
 - [ ] gen_ibans/methods/method_16.py
@@ -119,7 +121,7 @@ Hinweis: Exakte Reihenfolge kann nach tatsächlicher BLZ-Verteilung in realen Bu
 - [ ] gen_ibans/methods/method_21.py
 - [ ] gen_ibans/methods/method_22.py
 - [ ] gen_ibans/methods/method_23.py
-- [ ] gen_ibans/methods/method_24.py (Platzhalter ersetzen)
+- [x] gen_ibans/methods/method_24.py
 - [ ] … (weitere Codes gemäß Bundesbank-Liste)
 
 Hinweis: Die vollständige Methodenliste bitte aus der Bundesbank-Seite übernehmen und hier ergänzen. Einige Verfahren sind Gruppe/X-Varianten – jeweils sauber dokumentieren.
@@ -158,7 +160,7 @@ def validate_method_01(blz: str, account: str) -> bool:
 
 ## Meilensteine
 1) Basis-Familien (Mod10/Mod11 Standard) umgesetzt (>= 8 Verfahren) – Ziel: 1. Iteration.
-2) Platzhalter (09, 13, 24) ersetzen – Ziel: 1. Iteration.
+2) Platzhalter (09, 13, 24) ersetzt – erreicht in 1. Iteration.
 3) Verfahren mit Sonderwegen/BLZ-Abhängigkeiten – Ziel: 2. Iteration.
 4) Vollständige Abdeckung und > 95% Test-Coverage pro `gen_ibans/methods/*` – Ziel: 3. Iteration.
 
