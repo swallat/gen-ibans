@@ -16,6 +16,7 @@ Validator = Callable[[str, str], bool]
 Generator = Callable[[str, random.Random], str]
 
 _registry: dict[str, Validator] = {}
+_generators: dict[str, Generator] = {}
 
 
 def register(method_code: str):
@@ -23,6 +24,16 @@ def register(method_code: str):
 
     def _wrap(func: Validator) -> Validator:
         _registry[method_code] = func
+        return func
+
+    return _wrap
+
+
+def register_generator(method_code: str):
+    """Decorator to register a direct generator for a method code."""
+
+    def _wrap(func: Generator) -> Generator:
+        _generators[method_code] = func
         return func
 
     return _wrap
@@ -39,11 +50,20 @@ def get_validator(method_code: Optional[str]) -> Validator:
 def generate_valid_account(blz: str, rng: random.Random, method_code: Optional[str]) -> str:
     """Generate a valid 10-digit account number according to the bank's method.
 
-    This naive implementation attempts random numbers until they pass the validator.
-    Specific methods can later provide smarter direct constructions if needed.
+    Prefers a direct per-method generator when available; otherwise falls back
+    to a bounded RNG retry using the validator.
     """
     validator = get_validator(method_code)
-    # Try a bounded number of attempts to avoid infinite loops
+
+    # Prefer direct generator when registered
+    if method_code and method_code in _generators:
+        acc = _generators[method_code](blz, rng)
+        # Safety net: validate once (defensive programming)
+        if validator(blz, acc):
+            return acc
+        # If the provided generator fails for some edge case, fall back to retry loop
+
+    # Retry loop fallback (legacy behavior)
     for _ in range(1000):
         # Sample a 10-digit number (allow leading zeros except all zeros)
         num = rng.randint(0, 9999999999)

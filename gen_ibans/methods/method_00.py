@@ -2,7 +2,7 @@
 Method 00: No check digit (or not validated) — accepts any 10-digit account number.
 Reference: Some banks specify method 00 meaning no check is applied.
 """
-from . import register
+from . import register, register_generator
 
 
 @register("00")

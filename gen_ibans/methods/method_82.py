@@ -1,0 +1,14 @@
+"""
+Method 82: Placeholder stub.
+TODO: Implement per Bundesbank specification.
+"""
+from . import register
+
+
+@register("82")
+def validate_method_82(blz: str, account: str) -> bool:
+    """Validate account number for method 82.
+
+    Currently not implemented.
+    """
+    raise NotImplementedError("Method 82 validator not yet implemented")

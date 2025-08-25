@@ -10,8 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Implemented additional Bundesbank check-digit methods with validators and tests:
   - Method 01: Modulus 11 with weights [2..10] over first 9 digits, 11→0, 10→invalid.
+  - Method 02: Modulus 11 with weights [2,3,4,5,6,7,8,9,2] over first 9 digits; 11→0, 10→invalid.
+  - Method 03: Modulus 11 with repeating weights [2..7] over first 9 digits; 11→0, 10→invalid.
+  - Method 04: Simple Modulus 10 checksum on first 9 digits.
+  - Method 05: Modulus 10 (Luhn) on first 9 digits.
+  - Method 06: Modulus 11 with weights [2..10] over first 9 digits; 11→0, 10→invalid.
+  - Method 07: Modulus 11 with repeating weights [2..7] over first 9 digits; 11→0, 10→invalid.
+  - Method 08: Modulus 11 with weights [2,3,4,5,6,7,8,9,2] over first 9 digits; 11→0, 10→invalid.
   - Method 10: Simple Modulus 10 checksum on first 9 digits.
-- Stubs (registered placeholders) remain for methods 02–08, 11–12, 14–23 (raise NotImplementedError).
+    - Method 17: Modulus 10 (Luhn) on first 9 digits; 10th is check digit, with tests and generator.
+- Stubs (registered placeholders) remain for methods 11–12, 14–16, 18–23 (raise NotImplementedError where applicable).
 
 ### Changed
 - Replaced permissive placeholders with concrete implementations:

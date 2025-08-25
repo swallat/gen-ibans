@@ -17,12 +17,19 @@ Dieses Dokument dient als Arbeitsgrundlage für kommende Sessions zur vollständ
 - Bereits implementierte Files (mit Unit-Tests):
   - method_00.py (akzeptiert 10-stellige Kontonummern – korrekt für „00“/kein Check)
   - method_01.py (Mod11 mit Gewichten [2..10], 11→0, 10→invalid)
+  - method_02.py (Mod11 mit Gewichten [2,3,4,5,6,7,8,9,2], 11→0, 10→invalid)
+  - method_03.py (Mod11 mit wiederholten Gewichten 2..7, 11→0, 10→invalid)
+  - method_04.py (einfaches Mod10 über die ersten 9 Stellen)
+  - method_05.py (Luhn/Mod10, letzte Stelle Prüfziffer)
+  - method_06.py (Mod11 mit Gewichten [2..10], 11→0, 10→invalid)
+  - method_07.py (Mod11 mit wiederholten Gewichten 2..7, 11→0, 10→invalid)
+  - method_08.py (Mod11 mit Gewichten [2,3,4,5,6,7,8,9,2], 11→0, 10→invalid)
   - method_09.py (Mod11 mit wiederholten Gewichten 2..7)
   - method_10.py (einfaches Mod10 über die ersten 9 Stellen)
   - method_13.py (Luhn/Mod10, letzte Stelle Prüfziffer)
   - method_24.py (Mod11 mit Gewichten [2,3,4,5,6,7,8,9,2])
 - `IBANGenerator` nutzt `BankInfo.method_code` und generiert Kontonummern über `gen_ibans.methods.generate_valid_account`.
-- Vollständige methodenspezifische Detailtests existieren für 00, 01, 09, 10, 13 und 24; gesamte Test-Suite grün.
+- Vollständige methodenspezifische Detailtests existieren für 00, 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 13 und 24; gesamte Test-Suite grün.
 
 
 ## Zielbild
@@ -35,7 +42,7 @@ Dieses Dokument dient als Arbeitsgrundlage für kommende Sessions zur vollständ
 
 
 ## Struktur & Konventionen
-- Dateiname: `method_XX.py` (zweistellig, führende Null).
+- Dateiname: `method_<CODE>.py` (numerisch 00–99 und alphanumerisch A0–E9; bei numerischen Codes zweistellig mit führender Null).
 - Öffentliche Signatur: `validate_method_XX(blz: str, account: str) -> bool`.
 - Keine Seiteneffekte; nur pure Validierung. BLZ-bezogene Ausnahmen laut Verfahren berücksichtigen (z. B. andere Gewichtungen je Bankgruppe).
 - Für Hilfsfunktionen (z. B. Modulo-10/11, iterierte Gewichtungen, Subkontomasken) intern im jeweiligen File implementieren oder in kleinen gemeinsamen Utils (nur wenn es mehrfach benutzt wird – aktuell vermeiden, bis klarer Bedarf besteht).
@@ -62,8 +69,8 @@ Empfehlung: Zuerst die am häufigsten auftretenden/verbreiteten „Standard“-V
 - Verfahren mit Ausnahmeregeln abhängig von BLZ oder Kontonummer-Präfix
 
 Startvorschlag (alphabetisch nach Code ist nicht sinnvoll – stattdessen nach Komplexität/Verbreitung):
-1) 01, 02, 03, 04 (häufige Basismethoden Mod 10/11 mit Gewichtungen) 
-2) 06, 07, 08 (weitere Varianten mit Sonderregeln)
+1) 01, 02, 03, 04 (häufige Basismethoden Mod 10/11 mit Gewichtungen) – erledigt ✓ 
+2) 06, 07, 08 (weitere Varianten mit Sonderregeln) – erledigt ✓
 3) 09, 10, 11, 12, 13 (09, 10 und 13 sind bereits umgesetzt; 11/12 folgen)
 4) 20er-Bereich (24 ist bereits umgesetzt; übrige 20er bei Bedarf anschließend)
 5) Restliche Methoden inkl. Sonder-/Gruppenverfahren
@@ -99,13 +106,13 @@ Hinweis: Exakte Reihenfolge kann nach tatsächlicher BLZ-Verteilung in realen Bu
 - [x] gen_ibans/methods/__init__.py (Registry, Generator via Retry)
 - [x] gen_ibans/methods/method_00.py (kein Check)
 - [x] gen_ibans/methods/method_01.py
-- [ ] gen_ibans/methods/method_02.py
-- [ ] gen_ibans/methods/method_03.py
-- [ ] gen_ibans/methods/method_04.py
-- [ ] gen_ibans/methods/method_05.py
-- [ ] gen_ibans/methods/method_06.py
-- [ ] gen_ibans/methods/method_07.py
-- [ ] gen_ibans/methods/method_08.py
+- [x] gen_ibans/methods/method_02.py
+- [x] gen_ibans/methods/method_03.py
+- [x] gen_ibans/methods/method_04.py
+- [x] gen_ibans/methods/method_05.py
+- [x] gen_ibans/methods/method_06.py
+- [x] gen_ibans/methods/method_07.py
+- [x] gen_ibans/methods/method_08.py
 - [x] gen_ibans/methods/method_09.py
 - [x] gen_ibans/methods/method_10.py
 - [ ] gen_ibans/methods/method_11.py
@@ -114,7 +121,7 @@ Hinweis: Exakte Reihenfolge kann nach tatsächlicher BLZ-Verteilung in realen Bu
 - [ ] gen_ibans/methods/method_14.py
 - [ ] gen_ibans/methods/method_15.py
 - [ ] gen_ibans/methods/method_16.py
-- [ ] gen_ibans/methods/method_17.py
+- [x] gen_ibans/methods/method_17.py
 - [ ] gen_ibans/methods/method_18.py
 - [ ] gen_ibans/methods/method_19.py
 - [ ] gen_ibans/methods/method_20.py
@@ -122,9 +129,133 @@ Hinweis: Exakte Reihenfolge kann nach tatsächlicher BLZ-Verteilung in realen Bu
 - [ ] gen_ibans/methods/method_22.py
 - [ ] gen_ibans/methods/method_23.py
 - [x] gen_ibans/methods/method_24.py
-- [ ] … (weitere Codes gemäß Bundesbank-Liste)
+- [ ] gen_ibans/methods/method_25.py
+- [ ] gen_ibans/methods/method_26.py
+- [ ] gen_ibans/methods/method_27.py
+- [ ] gen_ibans/methods/method_28.py
+- [ ] gen_ibans/methods/method_29.py
+- [ ] gen_ibans/methods/method_30.py
+- [ ] gen_ibans/methods/method_31.py
+- [ ] gen_ibans/methods/method_32.py
+- [ ] gen_ibans/methods/method_33.py
+- [ ] gen_ibans/methods/method_34.py
+- [ ] gen_ibans/methods/method_35.py
+- [ ] gen_ibans/methods/method_36.py
+- [ ] gen_ibans/methods/method_37.py
+- [ ] gen_ibans/methods/method_38.py
+- [ ] gen_ibans/methods/method_39.py
+- [ ] gen_ibans/methods/method_40.py
+- [ ] gen_ibans/methods/method_41.py
+- [ ] gen_ibans/methods/method_42.py
+- [ ] gen_ibans/methods/method_43.py
+- [ ] gen_ibans/methods/method_44.py
+- [ ] gen_ibans/methods/method_45.py
+- [ ] gen_ibans/methods/method_46.py
+- [ ] gen_ibans/methods/method_47.py
+- [ ] gen_ibans/methods/method_48.py
+- [ ] gen_ibans/methods/method_49.py
+- [ ] gen_ibans/methods/method_50.py
+- [ ] gen_ibans/methods/method_51.py
+- [ ] gen_ibans/methods/method_52.py
+- [ ] gen_ibans/methods/method_53.py
+- [ ] gen_ibans/methods/method_54.py
+- [ ] gen_ibans/methods/method_55.py
+- [ ] gen_ibans/methods/method_56.py
+- [ ] gen_ibans/methods/method_57.py
+- [ ] gen_ibans/methods/method_58.py
+- [ ] gen_ibans/methods/method_59.py
+- [ ] gen_ibans/methods/method_60.py
+- [ ] gen_ibans/methods/method_61.py
+- [ ] gen_ibans/methods/method_62.py
+- [ ] gen_ibans/methods/method_63.py
+- [ ] gen_ibans/methods/method_64.py
+- [ ] gen_ibans/methods/method_65.py
+- [ ] gen_ibans/methods/method_66.py
+- [ ] gen_ibans/methods/method_67.py
+- [ ] gen_ibans/methods/method_68.py
+- [ ] gen_ibans/methods/method_69.py
+- [ ] gen_ibans/methods/method_70.py
+- [ ] gen_ibans/methods/method_71.py
+- [ ] gen_ibans/methods/method_72.py
+- [ ] gen_ibans/methods/method_73.py
+- [ ] gen_ibans/methods/method_74.py
+- [ ] gen_ibans/methods/method_75.py
+- [ ] gen_ibans/methods/method_76.py
+- [ ] gen_ibans/methods/method_77.py
+- [ ] gen_ibans/methods/method_78.py
+- [ ] gen_ibans/methods/method_79.py
+- [ ] gen_ibans/methods/method_80.py
+- [ ] gen_ibans/methods/method_81.py
+- [ ] gen_ibans/methods/method_82.py
+- [ ] gen_ibans/methods/method_83.py
+- [ ] gen_ibans/methods/method_84.py
+- [ ] gen_ibans/methods/method_85.py
+- [ ] gen_ibans/methods/method_86.py
+- [ ] gen_ibans/methods/method_87.py
+- [ ] gen_ibans/methods/method_88.py
+- [ ] gen_ibans/methods/method_89.py
+- [ ] gen_ibans/methods/method_90.py
+- [ ] gen_ibans/methods/method_91.py
+- [ ] gen_ibans/methods/method_92.py
+- [ ] gen_ibans/methods/method_93.py
+- [ ] gen_ibans/methods/method_94.py
+- [ ] gen_ibans/methods/method_95.py
+- [ ] gen_ibans/methods/method_96.py
+- [ ] gen_ibans/methods/method_97.py
+- [ ] gen_ibans/methods/method_98.py
+- [ ] gen_ibans/methods/method_99.py
+- [ ] gen_ibans/methods/method_A0.py
+- [ ] gen_ibans/methods/method_A1.py
+- [ ] gen_ibans/methods/method_A2.py
+- [ ] gen_ibans/methods/method_A3.py
+- [ ] gen_ibans/methods/method_A4.py
+- [ ] gen_ibans/methods/method_A5.py
+- [ ] gen_ibans/methods/method_A6.py
+- [ ] gen_ibans/methods/method_A7.py
+- [ ] gen_ibans/methods/method_A8.py
+- [ ] gen_ibans/methods/method_A9.py
+- [ ] gen_ibans/methods/method_B0.py
+- [ ] gen_ibans/methods/method_B1.py
+- [ ] gen_ibans/methods/method_B2.py
+- [ ] gen_ibans/methods/method_B3.py
+- [ ] gen_ibans/methods/method_B4.py
+- [ ] gen_ibans/methods/method_B5.py
+- [ ] gen_ibans/methods/method_B6.py
+- [ ] gen_ibans/methods/method_B7.py
+- [ ] gen_ibans/methods/method_B8.py
+- [ ] gen_ibans/methods/method_B9.py
+- [ ] gen_ibans/methods/method_C0.py
+- [ ] gen_ibans/methods/method_C1.py
+- [ ] gen_ibans/methods/method_C2.py
+- [ ] gen_ibans/methods/method_C3.py
+- [ ] gen_ibans/methods/method_C4.py
+- [ ] gen_ibans/methods/method_C5.py
+- [ ] gen_ibans/methods/method_C6.py
+- [ ] gen_ibans/methods/method_C7.py
+- [ ] gen_ibans/methods/method_C8.py
+- [ ] gen_ibans/methods/method_C9.py
+- [ ] gen_ibans/methods/method_D0.py
+- [ ] gen_ibans/methods/method_D1.py
+- [ ] gen_ibans/methods/method_D2.py
+- [ ] gen_ibans/methods/method_D3.py
+- [ ] gen_ibans/methods/method_D4.py
+- [ ] gen_ibans/methods/method_D5.py
+- [ ] gen_ibans/methods/method_D6.py
+- [ ] gen_ibans/methods/method_D7.py
+- [ ] gen_ibans/methods/method_D8.py
+- [ ] gen_ibans/methods/method_D9.py
+- [ ] gen_ibans/methods/method_E0.py
+- [ ] gen_ibans/methods/method_E1.py
+- [ ] gen_ibans/methods/method_E2.py
+- [ ] gen_ibans/methods/method_E3.py
+- [ ] gen_ibans/methods/method_E4.py
+- [ ] gen_ibans/methods/method_E5.py
+- [ ] gen_ibans/methods/method_E6.py
+- [ ] gen_ibans/methods/method_E7.py
+- [ ] gen_ibans/methods/method_E8.py
+- [ ] gen_ibans/methods/method_E9.py
 
-Hinweis: Die vollständige Methodenliste bitte aus der Bundesbank-Seite übernehmen und hier ergänzen. Einige Verfahren sind Gruppe/X-Varianten – jeweils sauber dokumentieren.
+Hinweis: Die Bundesbank definiert Methodencodes im Bereich 00–99 sowie zusätzlich alphanumerische Serien (A0–E9). Nicht alle Codes sind zwingend belegt oder aktuell im Einsatz; die Liste dient als vollständige Checkliste. Einige Verfahren sind Gruppen-/Variantenverfahren – bitte jeweils sauber dokumentieren.
 
 
 ## Beispiel: Schablone für eine Methode

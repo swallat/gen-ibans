@@ -1,0 +1,14 @@
+"""
+Method 59: Placeholder stub.
+TODO: Implement per Bundesbank specification.
+"""
+from . import register
+
+
+@register("59")
+def validate_method_59(blz: str, account: str) -> bool:
+    """Validate account number for method 59.
+
+    Currently not implemented.
+    """
+    raise NotImplementedError("Method 59 validator not yet implemented")

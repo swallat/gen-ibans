@@ -7,7 +7,7 @@ Rules:
 - Sum products, r = sum % 11; check = 11 - r; if check == 10 -> invalid; if check == 11 -> 0.
 - Valid if last digit equals computed check.
 """
-from . import register
+from . import register, register_generator
 
 
 def _compute_check_mod11_w2_to_10(payload: str) -> int | None:
@@ -35,3 +35,16 @@ def validate_method_01(blz: str, account: str) -> bool:
     if expected is None:
         return False
     return (ord(last) - 48) == expected
+
+
+@register_generator("01")
+def generate_account_method_01(blz: str, rng: __import__("random").Random) -> str:
+    # draw payload until the computed check digit is valid (not 10)
+    for _ in range(1000):
+        payload_num = rng.randint(0, 999_999_999)
+        payload = f"{payload_num:09d}"
+        cd = _compute_check_mod11_w2_to_10(payload)
+        if cd is not None:
+            return payload + str(cd)
+    # worst-case fallback (should not occur in practice)
+    return "0000000001"

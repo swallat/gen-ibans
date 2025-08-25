@@ -7,7 +7,7 @@ Assumed interpretation (variant found in Bundesbank methods):
 - Sum of products S; remainder r = S % 11.
 - Check = 11 - r; if check == 10 -> invalid; if check == 11 -> 0.
 """
-from . import register
+from . import register, register_generator
 
 
 def _compute_check_mod11_custom(payload: str) -> int | None:
@@ -35,3 +35,14 @@ def validate_method_24(blz: str, account: str) -> bool:
     if expected is None:
         return False
     return (ord(check_digit_char) - 48) == expected
+
+
+@register_generator("24")
+def generate_account_method_24(blz: str, rng: __import__("random").Random) -> str:
+    for _ in range(1000):
+        payload_num = rng.randint(0, 999_999_999)
+        payload = f"{payload_num:09d}"
+        cd = _compute_check_mod11_custom(payload)
+        if cd is not None:
+            return payload + str(cd)
+    return "0000000001"

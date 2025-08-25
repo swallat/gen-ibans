@@ -11,7 +11,7 @@ Assumed interpretation (common Bundesbank method):
 Note: This replaces the prior permissive placeholder with a concrete, commonly used variant
 of method 09. If your bank list uses a different 09 definition, adjust weights/rules accordingly.
 """
-from . import register
+from . import register, register_generator
 
 
 def _compute_check_mod11_weights_2_to_7(payload: str) -> int | None:
@@ -41,3 +41,14 @@ def validate_method_09(blz: str, account: str) -> bool:
     if expected is None:
         return False
     return (ord(check_digit_char) - 48) == expected
+
+
+@register_generator("09")
+def generate_account_method_09(blz: str, rng: __import__("random").Random) -> str:
+    for _ in range(1000):
+        payload_num = rng.randint(0, 999_999_999)
+        payload = f"{payload_num:09d}"
+        cd = _compute_check_mod11_weights_2_to_7(payload)
+        if cd is not None:
+            return payload + str(cd)
+    return "0000000001"

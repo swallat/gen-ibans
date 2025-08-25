@@ -6,7 +6,7 @@ Assumed interpretation (common in Bundesbank set):
 - Compute Luhn sum on the first 9 digits (right to left, double every second digit; if >9, subtract 9).
 - Check digit = (10 - (sum % 10)) % 10. Valid if it equals the 10th digit.
 """
-from . import register
+from . import register, register_generator
 
 
 def _luhn_check_digit(payload: str) -> int:
@@ -32,3 +32,11 @@ def validate_method_13(blz: str, account: str) -> bool:
     payload, check_digit_char = account[:9], account[9]
     expected = _luhn_check_digit(payload)
     return (ord(check_digit_char) - 48) == expected
+
+
+@register_generator("13")
+def generate_account_method_13(blz: str, rng: __import__("random").Random) -> str:
+    payload_num = rng.randint(0, 999_999_999)
+    payload = f"{payload_num:09d}"
+    cd = _luhn_check_digit(payload)
+    return payload + str(cd)

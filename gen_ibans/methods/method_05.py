@@ -1,14 +1,40 @@
 """
-Method 05: Placeholder stub.
-TODO: Implement per Bundesbank specification.
+Method 05: Modulus 10 (Luhn) on first 9 digits; 10th is check digit.
+
+Assumed interpretation (standard variant, same as method 13):
+- Validate 10-digit account numbers.
+- Compute Luhn sum on the first 9 digits (right to left, double every second digit; if >9, subtract 9).
+- Check digit = (10 - (sum % 10)) % 10. Valid if it equals the 10th digit.
 """
-from . import register
+from . import register, register_generator
+
+
+def _luhn_check_digit(payload: str) -> int:
+    total = 0
+    for i, ch in enumerate(reversed(payload)):
+        d = ord(ch) - 48
+        if i % 2 == 0:
+            total += d
+        else:
+            dd = d * 2
+            if dd > 9:
+                dd -= 9
+            total += dd
+    return (10 - (total % 10)) % 10
 
 
 @register("05")
 def validate_method_05(blz: str, account: str) -> bool:
-    """Validate account number for method 05.
+    if len(account) != 10 or not account.isdigit():
+        return False
+    payload, check_digit_char = account[:9], account[9]
+    expected = _luhn_check_digit(payload)
+    return (ord(check_digit_char) - 48) == expected
 
-    Currently not implemented.
-    """
-    raise NotImplementedError("Method 05 validator not yet implemented")
+
+@register_generator("05")
+def generate_account_method_05(blz: str, rng: __import__("random").Random) -> str:
+    payload_num = rng.randint(0, 999_999_999)
+    payload = f"{payload_num:09d}"
+    cd = _luhn_check_digit(payload)
+    return payload + str(cd)
