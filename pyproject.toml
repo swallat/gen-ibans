@@ -54,6 +54,8 @@ gen_ibans = ["*.py"]
 
 [dependency-groups]
 dev = [
+    "jinja2>=3.1.6",
+    "pdfminer-six>=20250324",
     "py>=1.11.0",
     "pygments>=2.19.2",
     "pytest>=8.3.5",
