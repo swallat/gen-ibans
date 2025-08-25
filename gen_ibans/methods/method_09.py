@@ -1,54 +1,45 @@
 """
-Method 09: Modulus 11 with repeating weights 2..7 (right to left).
+Method 09 (Bundesbank): Keine Prüfzifferberechnung (no check digit calculation).
 
-Assumed interpretation (common Bundesbank method):
-- Use the first 9 digits as payload; the 10th digit is the check digit.
-- Multiply payload digits (from right to left) by weights repeating [2, 3, 4, 5, 6, 7].
-- Sum the products, take sum % 11.
-- Compute check = 11 - (sum % 11); if check == 10 -> invalid; if check == 11 -> 0.
-- Valid if last digit equals computed check.
+Spec essentials:
+- There is no computational check digit. The method does not define a validation
+  algorithm beyond basic format.
+- In this project, we interpret this as: any 10-digit numeric account number is
+  considered valid for Method 09. BLZ is not used.
 
-Note: This replaces the prior permissive placeholder with a concrete, commonly used variant
-of method 09. If your bank list uses a different 09 definition, adjust weights/rules accordingly.
+Notes:
+- Leading zeros are allowed. The account must be exactly 10 digits (0-9).
+- This replaces a previous Mod11 interpretation to comply with the provided spec
+  "Keine Prüfzifferberechnung" for Method 09.
 """
 from . import register, register_generator
 
 
-def _compute_check_mod11_weights_2_to_7(payload: str) -> int | None:
-    weights = [2, 3, 4, 5, 6, 7]
-    total = 0
-    # Apply from right to left across 9 payload digits
-    for i, ch in enumerate(reversed(payload)):
-        d = ord(ch) - 48
-        w = weights[i % len(weights)]
-        total += d * w
-    remainder = total % 11
-    check = 11 - remainder
-    if check == 10:
-        return None  # invalid according to rule
-    if check == 11:
-        return 0
-    return check
-
-
 @register("09")
 def validate_method_09(blz: str, account: str) -> bool:
-    # Preconditions
-    if len(account) != 10 or not account.isdigit():
-        return False
-    payload, check_digit_char = account[:9], account[9]
-    expected = _compute_check_mod11_weights_2_to_7(payload)
-    if expected is None:
-        return False
-    return (ord(check_digit_char) - 48) == expected
+    """Validate according to Method 09: accept any 10-digit numeric string.
+
+    Args:
+        blz: Bankleitzahl (unused for this method).
+        account: Account number string.
+    Returns:
+        True iff account is exactly 10 ASCII digits.
+    """
+    return len(account) == 10 and account.isdigit()
 
 
 @register_generator("09")
 def generate_account_method_09(blz: str, rng: __import__("random").Random) -> str:
-    for _ in range(1000):
-        payload_num = rng.randint(0, 999_999_999)
-        payload = f"{payload_num:09d}"
-        cd = _compute_check_mod11_weights_2_to_7(payload)
-        if cd is not None:
-            return payload + str(cd)
-    return "0000000001"
+    """Generate a 10-digit numeric account number valid for Method 09.
+
+    We sample a 10-digit number uniformly (including leading zeros). To avoid
+    the degenerate all-zero value, we replace it with "0000000001" for
+    compatibility with broader project generation behavior.
+    """
+    num = rng.randint(0, 9_999_999_999)
+    acc = f"{num:010d}"
+    if acc == "0000000000":
+        acc = "0000000001"
+    # Defensive check
+    assert validate_method_09(blz, acc)
+    return acc

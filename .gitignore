@@ -190,3 +190,4 @@ Thumbs.db
 bundesbank_data/!/config.toml
 config.toml
 /reference/pruefzifferberechnungsmethoden-data.pdf
+*.zip

@@ -343,6 +343,10 @@ class IBANGenerator:
             dict
         ] = []  # List of {base_person, max_uses, current_uses, variants}
 
+        # Track already issued IBANs within this generator instance to avoid collisions
+        # This ensures uniqueness across a session; if a collision happens, we retry.
+        self._issued_ibans: set[str] = set()
+
         self._load_banks(csv_path)
 
     def _load_banks(self, file_path: str) -> None:
@@ -628,10 +632,6 @@ class IBANGenerator:
 
         return f"{check_digits:02d}"
 
-    def _generate_account_number(self) -> str:
-        """Generate a random 10-digit account number (legacy behavior, not validated per bank)."""
-        account_num = self.rng.randint(1, 9999999999)
-        return f"{account_num:010d}"
 
     def _generate_account_number_for_bank(self, bank: BankInfo) -> str:
         """Generate a valid 10-digit account number for the given bank using its check-digit method."""
@@ -847,25 +847,40 @@ class IBANGenerator:
         """
         Generate a single valid German IBAN with account holders and beneficial owners.
 
+        Ensures uniqueness within this generator instance: if a generated IBAN
+        collides with a previously issued one, a new one is generated (up to a
+        bounded number of attempts) to avoid collisions.
+
         Returns:
             IBANRecord object containing IBAN, bank info, account holders, and beneficial owners
         """
         if not self.banks:
             raise ValueError("No valid banks loaded from CSV")
 
-        # Randomly select a bank
-        bank = self.rng.choice(self.banks)
+        # Try to generate a unique IBAN (avoid collisions within this instance)
+        max_attempts = 1000
+        for _ in range(max_attempts):
+            # Randomly select a bank
+            bank = self.rng.choice(self.banks)
 
-        # Generate account number valid per bank's check-digit method (if available)
-        account_number = self._generate_account_number_for_bank(bank)
+            # Generate account number valid per bank's check-digit method (if available)
+            account_number = self._generate_account_number_for_bank(bank)
 
-        # Calculate check digits
-        check_digits = self._calculate_iban_check_digits(
-            bank.bankleitzahl, account_number
-        )
+            # Calculate check digits
+            check_digits = self._calculate_iban_check_digits(
+                bank.bankleitzahl, account_number
+            )
 
-        # Construct IBAN
-        iban = f"DE{check_digits}{bank.bankleitzahl}{account_number}"
+            # Construct IBAN
+            iban = f"DE{check_digits}{bank.bankleitzahl}{account_number}"
+
+            # Ensure the IBAN is unique within this generator session
+            if iban not in self._issued_ibans:
+                self._issued_ibans.add(iban)
+                break
+        else:
+            # If we failed to create a new unique IBAN in bounded attempts
+            raise RuntimeError("Unable to generate a unique IBAN after multiple attempts")
 
         # First determine if account holders will include legal entity
         will_have_legal_entity = self.config.should_be_legal_entity(self.rng)

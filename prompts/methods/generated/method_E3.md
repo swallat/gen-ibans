@@ -57,3 +57,5 @@ Aufgaben:
 Abgabe:
 - Vollständiger Python-Codeausschnitt für method_E3.py mit Validator und Generator.
 - Kurzer Begründungstext, wie die Berechnung aus der Spezifikation abgeleitet wurde.
+Weitere Informationen: Diese Prompt-Vorlage ist Teil der generierten Methoden-Prompts. Für Details siehe die Bundesbank-Spezifikation und die Hinweise im Projekt-README.
+Alle Tests sollten nicht via Kommandozeile, sondern via pytest ausgeführt werden.

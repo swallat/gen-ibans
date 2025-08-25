@@ -1,6 +1,7 @@
 # MIT License
 #
-# Tests for Bundesbank method 03: Modulus 11 with repeating weights 2..7.
+# Tests for Bundesbank method 03: Modulus 10 with alternating weights 2,1 (no cross-sum),
+# calculation as in method 01.
 
 import random
 
@@ -8,20 +9,16 @@ from gen_ibans.methods.method_03 import validate_method_03
 from gen_ibans.methods import generate_valid_account
 
 
-def compute_check_mod11_w2_to_7(payload: str):
-    weights = [2, 3, 4, 5, 6, 7]
+def compute_check_mod10_w21_no_crosssum(payload: str):
     total = 0
     for i, ch in enumerate(reversed(payload)):
         d = ord(ch) - 48
-        w = weights[i % len(weights)]
-        total += d * w
-    remainder = total % 11
-    check = 11 - remainder
-    if check == 10:
-        return None
-    if check == 11:
-        return 0
-    return check
+        if (i % 2) == 0:
+            prod = d * 2  # weight 2 on rightmost payload digit
+        else:
+            prod = d      # weight 1
+        total += prod
+    return (10 - (total % 10)) % 10
 
 
 def test_method_03_positive_cases():
@@ -35,9 +32,7 @@ def test_method_03_positive_cases():
     ]
     for p in payloads:
         p = p[-9:].zfill(9)
-        cd = compute_check_mod11_w2_to_7(p)
-        if cd is None:
-            continue
+        cd = compute_check_mod10_w21_no_crosssum(p)
         account = p + str(cd)
         assert validate_method_03(blz, account) is True
 
@@ -45,11 +40,7 @@ def test_method_03_positive_cases():
 def test_method_03_negative_cases():
     blz = "12345678"
     p = "345678901"
-    cd = compute_check_mod11_w2_to_7(p)
-    if cd is None:
-        p = "111111111"
-        cd = compute_check_mod11_w2_to_7(p)
-    assert cd is not None
+    cd = compute_check_mod10_w21_no_crosssum(p)
     wrong_last = (cd + 1) % 10
     wrong_account = p + str(wrong_last)
     assert validate_method_03(blz, wrong_account) is False
@@ -58,19 +49,6 @@ def test_method_03_negative_cases():
     assert validate_method_03(blz, "123456789") is False
     assert validate_method_03(blz, "12345678901") is False
     assert validate_method_03(blz, "123456789X") is False
-
-
-def test_method_03_invalid_when_check_equals_10():
-    blz = "12345678"
-    found = False
-    for num in range(2000):
-        p = f"{num:09d}"
-        cd = compute_check_mod11_w2_to_7(p)
-        if cd is None:
-            found = True
-            assert validate_method_03(blz, p + "0") is False
-            break
-    assert found
 
 
 def test_generate_valid_account_method_03():

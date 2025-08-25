@@ -1,6 +1,7 @@
 # MIT License
 #
-# Tests for Bundesbank method 17 (Luhn on first 9 digits; 10th is check digit).
+# Tests for Bundesbank method 17 per spec (Modulus 11 over positions 2..7 with
+# weights 1,2,1,2,1,2; subtract 1 before modulus; P at position 8).
 
 import random
 
@@ -8,44 +9,38 @@ from gen_ibans.methods.method_17 import validate_method_17
 from gen_ibans.methods import generate_valid_account
 
 
-def luhn_check_digit(payload: str) -> int:
+def _quersumme(n: int) -> int:
+    return (n // 10) + (n % 10)
+
+
+def compute_check_method_17_from_stamm(stamm6: str) -> int:
+    weights = (1, 2, 1, 2, 1, 2)
     total = 0
-    for i, ch in enumerate(reversed(payload)):
+    for i, ch in enumerate(stamm6):
         d = ord(ch) - 48
-        if i % 2 == 0:
-            total += d
-        else:
-            dd = d * 2
-            if dd > 9:
-                dd -= 9
-            total += dd
-    return (10 - (total % 10)) % 10
+        w = weights[i]
+        prod = d * w
+        if w == 2:
+            prod = _quersumme(prod)
+        total += prod
+    r = (total - 1) % 11
+    if r == 0:
+        return 0
+    return 10 - r
 
 
-def test_method_17_positive_cases():
+def test_method_17_positive_cases_example():
     blz = "87654321"
-    payloads = [
-        "000000001",
-        "123456789",
-        "987654321",
-        "500000000",
-        "001234567",
-    ]
-    for p in payloads:
-        p = p[-9:].zfill(9)
-        cd = luhn_check_digit(p)
-        account = p + str(cd)
-        assert validate_method_17(blz, account) is True
+    # Provided example from spec: 0446786040 must be valid
+    assert validate_method_17(blz, "0446786040") is True
 
 
-def test_method_17_negative_cases_mutation():
+def test_method_17_negative_cases_mutation_and_format():
     blz = "87654321"
-    p = "123456789"
-    cd = luhn_check_digit(p)
-    account = p + str(cd)
-    wrong_last = (cd + 1) % 10
-    wrong_account = p + str(wrong_last)
-    assert validate_method_17(blz, wrong_account) is False
+    # Take the example and mutate the check digit
+    acc = "0446786040"
+    wrong = acc[:7] + ("1" if acc[7] != "1" else "2") + acc[8:]
+    assert validate_method_17(blz, wrong) is False
 
     # non-digits and wrong length should fail
     assert validate_method_17(blz, "123456789") is False

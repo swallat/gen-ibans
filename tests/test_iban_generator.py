@@ -148,6 +148,15 @@ class TestIBANGenerator(unittest.TestCase):
             self.assertTrue(validate_iban(iban_record.iban))
             self.assertIsInstance(iban_record.bank, BankInfo)
 
+    def test_no_collisions_in_batch(self):
+        """Generated IBANs within one generator instance should be unique (no collisions)."""
+        generator = IBANGenerator(self.temp_csv.name, seed=42)
+        count = 200
+        records = generator.generate_ibans(count)
+        ibans = [rec.iban for rec in records]
+        # Ensure all IBANs are unique
+        self.assertEqual(len(ibans), len(set(ibans)))
+
     def test_deterministic_generation(self):
         """Test that same seed produces same results."""
         generator1 = IBANGenerator(self.temp_csv.name, seed=42)
@@ -216,12 +225,14 @@ class TestIBANGenerator(unittest.TestCase):
         self.assertEqual(check_digits, "89")  # Known result for DE89370400440532013000
 
     def test_account_number_generation(self):
-        """Test account number generation."""
+        """Test account number generation via per-bank method-aware helper."""
         generator = IBANGenerator(self.temp_csv.name, seed=12345)
 
-        account_nums = [generator._generate_account_number() for _ in range(10)]
+        # Use the first loaded bank and generate accounts using the method-aware path
+        bank = generator.banks[0]
+        account_nums = [generator._generate_account_number_for_bank(bank) for _ in range(10)]
 
-        # Check format (10 digits, no leading zeros in generated number)
+        # Check format (10 digits)
         for acc_num in account_nums:
             self.assertEqual(len(acc_num), 10)
             self.assertTrue(acc_num.isdigit())

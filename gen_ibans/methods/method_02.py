@@ -40,10 +40,27 @@ def validate_method_02(blz: str, account: str) -> bool:
 
 @register_generator("02")
 def generate_account_method_02(blz: str, rng: __import__("random").Random) -> str:
+    """Generate a valid 10-digit account for Method 02.
+
+    Strategy: sample a 9-digit payload uniformly (including leading zeros),
+    compute the check digit. If the remainder leads to an invalid two-digit
+    check (i.e., remainder 1 -> cd None), resample. Probability of rejection
+    is 1/11, so expected retries ~1.1.
+
+    Includes a deterministic fallback that is guaranteed valid.
+    """
     for _ in range(1000):
         payload_num = rng.randint(0, 999_999_999)
         payload = f"{payload_num:09d}"
         cd = _compute_check_mod11_m02(payload)
         if cd is not None:
-            return payload + str(cd)
-    return "0000000001"
+            account = payload + str(cd)
+            # Sanity check against our validator to ensure consistency
+            assert validate_method_02(blz, account)
+            return account
+    # Deterministic guaranteed-valid fallback: payload of zeros yields remainder 0 -> cd 0
+    payload = "000000000"
+    cd = _compute_check_mod11_m02(payload)
+    account = payload + str(cd)
+    assert validate_method_02(blz, account)
+    return account
