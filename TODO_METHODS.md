@@ -115,20 +115,20 @@ Hinweis: Exakte Reihenfolge kann nach tatsächlicher BLZ-Verteilung in realen Bu
 - [x] gen_ibans/methods/method_08.py
 - [x] gen_ibans/methods/method_09.py
 - [x] gen_ibans/methods/method_10.py
-- [ ] gen_ibans/methods/method_11.py
-- [ ] gen_ibans/methods/method_12.py
+- [x] gen_ibans/methods/method_11.py
+- [x] gen_ibans/methods/method_12.py
 - [x] gen_ibans/methods/method_13.py
 - [ ] gen_ibans/methods/method_14.py
 - [ ] gen_ibans/methods/method_15.py
 - [ ] gen_ibans/methods/method_16.py
-- [x] gen_ibans/methods/method_17.py
+- [ ] gen_ibans/methods/method_17.py
 - [ ] gen_ibans/methods/method_18.py
 - [ ] gen_ibans/methods/method_19.py
 - [ ] gen_ibans/methods/method_20.py
 - [ ] gen_ibans/methods/method_21.py
 - [ ] gen_ibans/methods/method_22.py
 - [ ] gen_ibans/methods/method_23.py
-- [x] gen_ibans/methods/method_24.py
+- [ ] gen_ibans/methods/method_24.py
 - [ ] gen_ibans/methods/method_25.py
 - [ ] gen_ibans/methods/method_26.py
 - [ ] gen_ibans/methods/method_27.py

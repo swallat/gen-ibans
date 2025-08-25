@@ -1,7 +1,7 @@
 """
 Method 07: Modulus 11 with repeating weights 2..7 (right to left) over first 9 digits.
 
-Rules (same as methods 03/09):
+Rules (same as method 02 regarding remainder handling):
 - First 9 digits are payload; 10th is check digit.
 - Apply weights [2,3,4,5,6,7] from right-to-left, repeating.
 - Sum products; r = sum % 11; check = 11 - r.
@@ -44,5 +44,12 @@ def generate_account_method_07(blz: str, rng: __import__("random").Random) -> st
         payload = f"{payload_num:09d}"
         cd = _compute_check_mod11_w2_to_7(payload)
         if cd is not None:
-            return payload + str(cd)
-    return "0000000001"
+            account = payload + str(cd)
+            assert validate_method_07(blz, account)
+            return account
+    # Fallback: choose a deterministic payload that yields valid cd
+    payload = "000000000"
+    cd = _compute_check_mod11_w2_to_7(payload)
+    account = payload + str(cd)
+    assert validate_method_07(blz, account)
+    return account

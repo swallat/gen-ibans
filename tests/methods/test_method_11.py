@@ -1,6 +1,6 @@
 # MIT License
 #
-# Tests for Bundesbank method 11: Modulus 10 with weights 3,7,1 from right to left.
+# Tests for Bundesbank method 11: Modulus 11 with weights 2..10 (right-to-left, modified like method 06)
 
 import random
 
@@ -9,14 +9,18 @@ from gen_ibans.methods import generate_valid_account
 
 
 def compute_check_method_11(payload: str) -> int:
-    weights = [3, 7, 1]
+    weights = [2, 3, 4, 5, 6, 7, 8, 9, 10]
     total = 0
     for i, ch in enumerate(reversed(payload)):
         d = ord(ch) - 48
-        w = weights[i % 3]
+        w = weights[i]  # i in 0..8
         total += d * w
-    # Units digit only, subtract from 10; if 10 -> 0
-    return (10 - (total % 10)) % 10
+    r = total % 11
+    if r == 0:
+        return 0
+    if r == 1:
+        return 9
+    return 11 - r
 
 
 def test_method_11_positive_cases():
