@@ -118,7 +118,7 @@ Hinweis: Exakte Reihenfolge kann nach tatsächlicher BLZ-Verteilung in realen Bu
 - [x] gen_ibans/methods/method_11.py
 - [x] gen_ibans/methods/method_12.py
 - [x] gen_ibans/methods/method_13.py
-- [ ] gen_ibans/methods/method_14.py
+- [x] gen_ibans/methods/method_14.py
 - [ ] gen_ibans/methods/method_15.py
 - [ ] gen_ibans/methods/method_16.py
 - [ ] gen_ibans/methods/method_17.py
