@@ -109,3 +109,4 @@ Abgabe:
 - Kurzer Begründungstext, wie die Berechnung aus der Spezifikation abgeleitet wurde.
 Weitere Informationen: Diese Prompt-Vorlage ist Teil der generierten Methoden-Prompts. Für Details siehe die Bundesbank-Spezifikation und die Hinweise im Projekt-README.
 Alle Tests sollten nicht via Kommandozeile, sondern via pytest ausgeführt werden.
+Nach der Implementierung der Methode und der entsprechenden Tests markiere diese Methode als erledigt in der TODO_METHODS.md
